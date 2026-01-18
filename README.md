@@ -23,10 +23,10 @@ This document outlines foundational concepts and methodologies developed during 
 
 ## Credo
 
-> *"The universe is not only queerer than we suppose, but queerer than we can suppose."*
-> — **J. B. S. Haldane**
+> *"The question of whether a computer can think is no more interesting than the question of whether a submarine can swim."*
+> — **Edsger W. Dijkstra**
 
-This project bridges two paradigms of understanding structure: **Wolfram Physics** hypergraph rewriting as a model of fundamental physics, and **Lean 4** proof terms as a model of mathematical truth. Both represent complex relationships through directed graphs—one physical, one logical. By establishing a lossless bidirectional protocol between them, we enable:
+What matters is not the substrate but the structure. This project bridges two paradigms of understanding structure: **Wolfram Physics** hypergraph rewriting as a model of fundamental physics, and **Lean 4** proof terms as a model of mathematical truth. Both represent complex relationships through directed graphs—one physical, one logical. By establishing a lossless bidirectional protocol between them, we enable:
 
 1. **Visualization**: Render formal proofs in the striking visual style of Wolfram Physics
 2. **Verification**: Use Lean's kernel to witness properties of hypergraph structures

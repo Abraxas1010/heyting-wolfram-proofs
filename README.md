@@ -104,10 +104,16 @@ We humbly thank the collective intelligence of humanity for providing the techno
 
 ### 3D Visualizations (X3D/WebGL)
 
-| 3D View | Download |
-|---------|----------|
-| <a href="https://abraxas1010.github.io/heyting-wolfram-proofs/RESEARCHER_BUNDLE/artifacts/visuals/proof_HeytingLean_Crypto_QKD_BB84_copyAll_impossible_value_term_hypergraph_3d.png"><img src="RESEARCHER_BUNDLE/artifacts/visuals/proof_HeytingLean_Crypto_QKD_BB84_copyAll_impossible_value_term_hypergraph_3d.png" width="200"/></a> | **3D Hypergraph** — [Download X3D](RESEARCHER_BUNDLE/artifacts/visuals/proof_HeytingLean_Crypto_QKD_BB84_copyAll_impossible_value_term_hypergraph.x3d) for VR/3D viewing |
-| <a href="https://abraxas1010.github.io/heyting-wolfram-proofs/RESEARCHER_BUNDLE/artifacts/visuals/proof_HeytingLean_Crypto_QKD_BB84_copyAll_impossible_value_term_dag_3d.png"><img src="RESEARCHER_BUNDLE/artifacts/visuals/proof_HeytingLean_Crypto_QKD_BB84_copyAll_impossible_value_term_dag_3d.png" width="200"/></a> | **3D Proof DAG** — [Download X3D](RESEARCHER_BUNDLE/artifacts/visuals/proof_HeytingLean_Crypto_QKD_BB84_copyAll_impossible_value_term_dag.x3d) for VR/3D viewing |
+<p align="center">
+  <a href="https://abraxas1010.github.io/heyting-wolfram-proofs/RESEARCHER_BUNDLE/artifacts/visuals/x3d_viewer.html">
+    <strong>▶ Open Interactive 3D Viewer</strong>
+  </a>
+</p>
+
+| 3D View | Description |
+|---------|-------------|
+| <a href="https://abraxas1010.github.io/heyting-wolfram-proofs/RESEARCHER_BUNDLE/artifacts/visuals/x3d_viewer.html"><img src="RESEARCHER_BUNDLE/artifacts/visuals/proof_HeytingLean_Crypto_QKD_BB84_copyAll_impossible_value_term_hypergraph_3d.png" width="200"/></a> | **3D Hypergraph** — Rainbow polygons connecting proof term vertices in 3D space |
+| <a href="https://abraxas1010.github.io/heyting-wolfram-proofs/RESEARCHER_BUNDLE/artifacts/visuals/x3d_viewer.html"><img src="RESEARCHER_BUNDLE/artifacts/visuals/proof_HeytingLean_Crypto_QKD_BB84_copyAll_impossible_value_term_dag_3d.png" width="200"/></a> | **3D Proof DAG** — Layered tree structure with directed edges and type-colored nodes |
 
 ---
 

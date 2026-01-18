@@ -42,14 +42,65 @@ We humbly thank the collective intelligence of humanity for providing the techno
 
 <p align="center">
   <a href="https://abraxas1010.github.io/heyting-wolfram-proofs/RESEARCHER_BUNDLE/artifacts/visuals/bridge_viewer.html">
-    <img src="assets/bridge_hero.svg" alt="Wolfram ↔ Lean Bridge" width="800"/>
+    <img src="RESEARCHER_BUNDLE/artifacts/visuals/proof_HeytingLean_Crypto_QKD_BB84_copyAll_impossible_value_term_hypergraph.png" alt="Wolfram Hypergraph" width="400"/>
   </a>
 </p>
 
 <p align="center">
-  <em>Click to open the interactive bridge viewer</em><br/>
+  <em>Actual WolframModelPlot output from proof_term_hypergraph</em><br/>
   <a href="https://abraxas1010.github.io/heyting-wolfram-proofs/RESEARCHER_BUNDLE/artifacts/visuals/bridge_viewer.html">▶ Open Interactive Bridge Viewer</a>
 </p>
+
+---
+
+## Interactive Visualizations
+
+<table>
+<tr>
+<td align="center" width="50%">
+<strong>2D Proof Map</strong><br/>
+<em>Pan, zoom, search declarations</em><br/>
+<a href="https://abraxas1010.github.io/heyting-wolfram-proofs/RESEARCHER_BUNDLE/artifacts/visuals/wolfram_2d.html">
+  <img src="RESEARCHER_BUNDLE/artifacts/visuals/wolfram_2d_preview.svg" alt="UMAP 2D preview" width="100%"/>
+</a><br/>
+<a href="https://abraxas1010.github.io/heyting-wolfram-proofs/RESEARCHER_BUNDLE/artifacts/visuals/wolfram_2d.html">▶ Open 2D Map</a>
+</td>
+<td align="center" width="50%">
+<strong>3D Proof Map</strong><br/>
+<em>Rotate, zoom, click nodes</em><br/>
+<a href="https://abraxas1010.github.io/heyting-wolfram-proofs/RESEARCHER_BUNDLE/artifacts/visuals/wolfram_3d.html">
+  <img src="RESEARCHER_BUNDLE/artifacts/visuals/wolfram_3d_preview_animated.svg" alt="UMAP 3D preview" width="100%"/>
+</a><br/>
+<a href="https://abraxas1010.github.io/heyting-wolfram-proofs/RESEARCHER_BUNDLE/artifacts/visuals/wolfram_3d.html">▶ Open 3D Map</a>
+</td>
+</tr>
+<tr>
+<td align="center" width="50%">
+<strong>Tactic Flow Graph</strong><br/>
+<em>Proof tactics and goal transformations</em><br/>
+<a href="https://abraxas1010.github.io/heyting-wolfram-proofs/RESEARCHER_BUNDLE/artifacts/visuals/tactic_flow.html">
+  <img src="RESEARCHER_BUNDLE/artifacts/visuals/tactic_flow_preview.svg" alt="Tactic Flow preview" width="100%"/>
+</a><br/>
+<a href="https://abraxas1010.github.io/heyting-wolfram-proofs/RESEARCHER_BUNDLE/artifacts/visuals/tactic_flow.html">▶ Open Tactic Flow</a>
+</td>
+<td align="center" width="50%">
+<strong>Proof Term DAG</strong><br/>
+<em>Abstract syntax tree of proof terms</em><br/>
+<a href="https://abraxas1010.github.io/heyting-wolfram-proofs/RESEARCHER_BUNDLE/artifacts/visuals/proof_term_dag.html">
+  <img src="RESEARCHER_BUNDLE/artifacts/visuals/proof_term_dag_preview.svg" alt="Proof Term DAG preview" width="100%"/>
+</a><br/>
+<a href="https://abraxas1010.github.io/heyting-wolfram-proofs/RESEARCHER_BUNDLE/artifacts/visuals/proof_term_dag.html">▶ Open Proof DAG</a>
+</td>
+</tr>
+</table>
+
+### Wolfram Physics Output
+
+| Visualization | Description |
+|---------------|-------------|
+| <a href="https://abraxas1010.github.io/heyting-wolfram-proofs/RESEARCHER_BUNDLE/artifacts/visuals/proof_HeytingLean_Crypto_QKD_BB84_copyAll_impossible_value_term_hypergraph.png"><img src="RESEARCHER_BUNDLE/artifacts/visuals/proof_HeytingLean_Crypto_QKD_BB84_copyAll_impossible_value_term_hypergraph.png" width="200"/></a> | **Hypergraph** — WolframModelPlot rendering of proof term structure (22 hyperedges) |
+| <a href="https://abraxas1010.github.io/heyting-wolfram-proofs/RESEARCHER_BUNDLE/artifacts/visuals/proof_HeytingLean_Crypto_QKD_BB84_copyAll_impossible_value_term_dag.png"><img src="RESEARCHER_BUNDLE/artifacts/visuals/proof_HeytingLean_Crypto_QKD_BB84_copyAll_impossible_value_term_dag.png" width="200"/></a> | **Layered DAG** — Proof term tree with depth-based layout (44 nodes, max depth 8) |
+| <a href="https://abraxas1010.github.io/heyting-wolfram-proofs/RESEARCHER_BUNDLE/artifacts/visuals/constdeps_HeytingLean_Crypto_QKD_BB84_copyAll_impossible_dag.png"><img src="RESEARCHER_BUNDLE/artifacts/visuals/constdeps_HeytingLean_Crypto_QKD_BB84_copyAll_impossible_dag.png" width="200"/></a> | **Const Dependencies** — Which lemmas/definitions the theorem uses (10 dependencies) |
 
 ---
 

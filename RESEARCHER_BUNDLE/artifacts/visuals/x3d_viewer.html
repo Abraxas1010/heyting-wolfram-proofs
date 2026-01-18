@@ -131,6 +131,65 @@
       z-index: 100;
     }
     .back-link:hover { color: var(--accent); }
+
+    /* Node detail panel */
+    .detail-panel {
+      position: absolute;
+      top: 80px;
+      right: 20px;
+      background: rgba(0,0,0,0.92);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      padding: 16px;
+      max-width: 320px;
+      z-index: 200;
+      display: none;
+    }
+    .detail-panel.visible {
+      display: block;
+    }
+    .detail-panel .close-btn {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      background: none;
+      border: none;
+      color: var(--dim);
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .detail-panel .close-btn:hover { color: var(--text); }
+    .detail-panel h4 {
+      font-size: 14px;
+      color: var(--accent);
+      margin-bottom: 12px;
+      padding-right: 20px;
+    }
+    .detail-row {
+      display: flex;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+    .detail-row .label {
+      color: var(--dim);
+      width: 70px;
+      flex-shrink: 0;
+    }
+    .detail-row .value {
+      color: var(--text);
+      word-break: break-word;
+    }
+    .detail-row .value.kind {
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+    .hint {
+      font-size: 10px;
+      color: var(--dim);
+      margin-top: 6px;
+      font-style: italic;
+    }
   </style>
 </head>
 <body>
@@ -148,7 +207,7 @@
 
   <div class="info">
     <h3 id="view-title">Hypergraph View</h3>
-    <p id="view-desc">3D hypergraph showing proof term structure. Rainbow-colored regions connect premises to conclusions.</p>
+    <p id="view-desc">3D hypergraph showing proof term structure. Colored lines show hyperedge connections between premises and conclusions.</p>
     <div class="legend">
       <div class="legend-color" style="background: #66ccff"></div><span>Lambda (λ)</span>
       <div class="legend-color" style="background: #b266ff"></div><span>Application</span>
@@ -156,6 +215,7 @@
       <div class="legend-color" style="background: #66ff80"></div><span>Bound Var</span>
       <div class="legend-color" style="background: #808080"></div><span>Metadata</span>
     </div>
+    <p class="hint">Click on a node to see details</p>
   </div>
 
   <div class="controls">
@@ -163,10 +223,36 @@
     <button class="btn" onclick="toggleSpin()">Toggle Spin</button>
   </div>
 
+  <!-- Detail panel for clicked nodes -->
+  <div class="detail-panel" id="detail-panel">
+    <button class="close-btn" onclick="hideDetail()">&times;</button>
+    <h4 id="detail-title">Node Details</h4>
+    <div class="detail-row">
+      <span class="label">ID:</span>
+      <span class="value" id="detail-id"></span>
+    </div>
+    <div class="detail-row">
+      <span class="label">Kind:</span>
+      <span class="value kind" id="detail-kind"></span>
+    </div>
+    <div class="detail-row">
+      <span class="label">Label:</span>
+      <span class="value" id="detail-label"></span>
+    </div>
+    <div class="detail-row">
+      <span class="label">Children:</span>
+      <span class="value" id="detail-children"></span>
+    </div>
+    <div class="detail-row">
+      <span class="label">Parent of:</span>
+      <span class="value" id="detail-parent"></span>
+    </div>
+  </div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script>
-    // Proof term data from metadata
+    // Proof term data from HeytingLean.Crypto.QKD.BB84.copyAll_impossible
     const proofData = {
       nodes: [
         {id: 0, kind: "lam", label: "λ h"},
@@ -225,6 +311,20 @@
       ]
     };
 
+    // Build lookup maps for node relationships
+    const nodeChildren = {};  // nodeId -> array of child node IDs
+    const nodeParents = {};   // nodeId -> array of edges where this node is parent
+    proofData.nodes.forEach(n => {
+      nodeChildren[n.id] = [];
+      nodeParents[n.id] = [];
+    });
+    proofData.hyperedges.forEach(edge => {
+      const parent = edge[edge.length - 1];
+      const children = edge.slice(0, -1);
+      nodeChildren[parent] = children;
+      children.forEach(c => nodeParents[c].push(parent));
+    });
+
     // Colors by node kind
     const kindColors = {
       lam: 0x66ccff,
@@ -239,10 +339,41 @@
       proj: 0xcc9966
     };
 
+    const kindColorCSS = {
+      lam: '#66ccff',
+      app: '#b266ff',
+      const: '#ff9933',
+      bvar: '#66ff80',
+      fvar: '#80ff80',
+      forall: '#ff6699',
+      mdata: '#808080',
+      sort: '#ffff66',
+      let: '#99ccff',
+      proj: '#cc9966'
+    };
+
+    const kindNames = {
+      lam: 'Lambda',
+      app: 'Application',
+      const: 'Constant',
+      bvar: 'Bound Variable',
+      fvar: 'Free Variable',
+      forall: 'Forall',
+      mdata: 'Metadata',
+      sort: 'Sort',
+      let: 'Let',
+      proj: 'Projection'
+    };
+
     let scene, camera, renderer, controls;
     let hypergraphGroup, dagGroup;
     let currentView = 'hypergraph';
     let spinning = false;
+    let nodeMeshes = [];  // For raycasting
+    let positions = { hypergraph: [], dag: [] };
+
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
 
     function init() {
       const container = document.getElementById('container');
@@ -263,7 +394,7 @@
       controls.dampingFactor = 0.05;
 
       // Lighting
-      const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+      const ambient = new THREE.AmbientLight(0xffffff, 0.5);
       scene.add(ambient);
       const directional = new THREE.DirectionalLight(0xffffff, 0.8);
       directional.position.set(5, 10, 7);
@@ -276,67 +407,59 @@
       // Start with hypergraph
       showView('hypergraph');
 
+      // Event listeners
       window.addEventListener('resize', onResize);
+      renderer.domElement.addEventListener('click', onMouseClick);
+      renderer.domElement.addEventListener('mousemove', onMouseMove);
+
       animate();
     }
 
     function createHypergraphView() {
       hypergraphGroup = new THREE.Group();
 
-      // Layout nodes using force-directed (simplified spring embedding)
-      const positions = layoutNodes(proofData.nodes.length, 'spring');
+      // Layout nodes using force-directed style
+      positions.hypergraph = layoutNodes(proofData.nodes.length, 'spring');
 
       // Rainbow colors for hyperedges
       const numEdges = proofData.hyperedges.length;
 
-      // Draw hyperedges as semi-transparent triangular meshes
+      // Draw hyperedges as colored lines (cleaner than filled polygons)
       proofData.hyperedges.forEach((edge, i) => {
         const hue = i / numEdges;
-        const color = new THREE.Color().setHSL(hue, 0.8, 0.5);
+        const color = new THREE.Color().setHSL(hue, 0.9, 0.55);
+        const parentIdx = edge[edge.length - 1];
 
-        if (edge.length >= 3) {
-          // Create triangular mesh from centroid
-          const pts = edge.map(idx => positions[idx]);
-          const center = pts.reduce((a, b) => a.map((v, i) => v + b[i]), [0,0,0]).map(v => v / pts.length);
-
-          for (let j = 0; j < pts.length - 1; j++) {
-            const geom = new THREE.BufferGeometry();
-            const vertices = new Float32Array([
-              ...pts[j], ...pts[(j + 1) % (pts.length - 1)], ...center
-            ]);
-            geom.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-            geom.computeVertexNormals();
-
-            const mat = new THREE.MeshBasicMaterial({
-              color: color,
-              transparent: true,
-              opacity: 0.3,
-              side: THREE.DoubleSide
-            });
-            hypergraphGroup.add(new THREE.Mesh(geom, mat));
-          }
-        }
-
-        // Draw edges as lines
+        // Draw lines from each child to parent
         edge.slice(0, -1).forEach(childIdx => {
-          const parentIdx = edge[edge.length - 1];
-          const lineGeom = new THREE.BufferGeometry().setFromPoints([
-            new THREE.Vector3(...positions[childIdx]),
-            new THREE.Vector3(...positions[parentIdx])
-          ]);
-          const lineMat = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: 0.6 });
-          hypergraphGroup.add(new THREE.Line(lineGeom, lineMat));
+          const points = [
+            new THREE.Vector3(...positions.hypergraph[childIdx]),
+            new THREE.Vector3(...positions.hypergraph[parentIdx])
+          ];
+
+          // Create tube for thicker visible lines
+          const path = new THREE.CatmullRomCurve3(points);
+          const tubeGeom = new THREE.TubeGeometry(path, 8, 0.025, 8, false);
+          const tubeMat = new THREE.MeshPhongMaterial({
+            color: color,
+            transparent: true,
+            opacity: 0.7,
+            shininess: 50
+          });
+          hypergraphGroup.add(new THREE.Mesh(tubeGeom, tubeMat));
         });
       });
 
       // Draw nodes as spheres
       proofData.nodes.forEach((node, i) => {
         const color = kindColors[node.kind] || 0xffffff;
-        const geom = new THREE.SphereGeometry(0.12, 16, 16);
-        const mat = new THREE.MeshPhongMaterial({ color: color, shininess: 30 });
+        const geom = new THREE.SphereGeometry(0.15, 20, 20);
+        const mat = new THREE.MeshPhongMaterial({ color: color, shininess: 40 });
         const mesh = new THREE.Mesh(geom, mat);
-        mesh.position.set(...positions[i]);
+        mesh.position.set(...positions.hypergraph[i]);
+        mesh.userData = { nodeIndex: i, view: 'hypergraph' };
         hypergraphGroup.add(mesh);
+        nodeMeshes.push(mesh);
       });
 
       scene.add(hypergraphGroup);
@@ -346,25 +469,25 @@
       dagGroup = new THREE.Group();
 
       // Layout nodes using layered embedding
-      const positions = layoutNodes(proofData.nodes.length, 'layered');
+      positions.dag = layoutNodes(proofData.nodes.length, 'layered');
 
-      // Draw directed edges
+      // Draw directed edges with arrows
       proofData.hyperedges.forEach(edge => {
         const parentIdx = edge[edge.length - 1];
         edge.slice(0, -1).forEach(childIdx => {
-          const start = new THREE.Vector3(...positions[childIdx]);
-          const end = new THREE.Vector3(...positions[parentIdx]);
+          const start = new THREE.Vector3(...positions.dag[childIdx]);
+          const end = new THREE.Vector3(...positions.dag[parentIdx]);
 
           // Tube for edge
           const path = new THREE.LineCurve3(start, end);
-          const tubeGeom = new THREE.TubeGeometry(path, 1, 0.03, 8, false);
+          const tubeGeom = new THREE.TubeGeometry(path, 1, 0.025, 8, false);
           const tubeMat = new THREE.MeshPhongMaterial({ color: 0x666666 });
           dagGroup.add(new THREE.Mesh(tubeGeom, tubeMat));
 
           // Arrow cone
           const dir = end.clone().sub(start).normalize();
-          const arrowPos = end.clone().sub(dir.multiplyScalar(0.2));
-          const coneGeom = new THREE.ConeGeometry(0.08, 0.15, 8);
+          const arrowPos = end.clone().sub(dir.clone().multiplyScalar(0.22));
+          const coneGeom = new THREE.ConeGeometry(0.07, 0.14, 8);
           const coneMat = new THREE.MeshPhongMaterial({ color: 0x888888 });
           const cone = new THREE.Mesh(coneGeom, coneMat);
           cone.position.copy(arrowPos);
@@ -377,11 +500,13 @@
       // Draw nodes as colored spheres
       proofData.nodes.forEach((node, i) => {
         const color = kindColors[node.kind] || 0xffffff;
-        const geom = new THREE.SphereGeometry(0.15, 16, 16);
-        const mat = new THREE.MeshPhongMaterial({ color: color, shininess: 20 });
+        const geom = new THREE.SphereGeometry(0.18, 20, 20);
+        const mat = new THREE.MeshPhongMaterial({ color: color, shininess: 30 });
         const mesh = new THREE.Mesh(geom, mat);
-        mesh.position.set(...positions[i]);
+        mesh.position.set(...positions.dag[i]);
+        mesh.userData = { nodeIndex: i, view: 'dag' };
         dagGroup.add(mesh);
+        nodeMeshes.push(mesh);
       });
 
       dagGroup.visible = false;
@@ -389,27 +514,31 @@
     }
 
     function layoutNodes(count, type) {
-      const positions = [];
+      const pos = [];
       if (type === 'spring') {
-        // Simple 3D spring layout
+        // Spherical spring layout
         for (let i = 0; i < count; i++) {
-          const theta = (i / count) * Math.PI * 6;
-          const r = 2 + (i / count) * 2;
-          const y = (i / count - 0.5) * 4;
-          positions.push([r * Math.cos(theta), y, r * Math.sin(theta)]);
+          const phi = Math.acos(-1 + (2 * i) / count);
+          const theta = Math.sqrt(count * Math.PI) * phi;
+          const r = 3;
+          pos.push([
+            r * Math.cos(theta) * Math.sin(phi),
+            r * Math.sin(theta) * Math.sin(phi),
+            r * Math.cos(phi)
+          ]);
         }
       } else {
         // Layered layout for DAG
         for (let i = 0; i < count; i++) {
           const layer = Math.floor(i / 6);
           const inLayer = i % 6;
-          const x = (inLayer - 2.5) * 1.2;
-          const y = -layer * 1.0;
-          const z = Math.sin(i * 0.5) * 0.5;
-          positions.push([x, y, z]);
+          const x = (inLayer - 2.5) * 1.3;
+          const y = -layer * 1.1;
+          const z = Math.sin(i * 0.4) * 0.4;
+          pos.push([x, y, z]);
         }
       }
-      return positions;
+      return pos;
     }
 
     function showView(view) {
@@ -422,11 +551,71 @@
 
       if (view === 'hypergraph') {
         document.getElementById('view-title').textContent = 'Hypergraph View';
-        document.getElementById('view-desc').textContent = '3D hypergraph showing proof term structure. Rainbow-colored regions connect premises to conclusions.';
+        document.getElementById('view-desc').textContent = '3D hypergraph showing proof term structure. Colored lines show hyperedge connections between premises and conclusions.';
       } else {
         document.getElementById('view-title').textContent = 'Proof DAG View';
         document.getElementById('view-desc').textContent = 'Layered directed graph showing proof structure. Arrows flow from premises to parent nodes.';
       }
+
+      hideDetail();
+    }
+
+    function onMouseClick(event) {
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+
+      // Only check nodes in current view
+      const visibleNodes = nodeMeshes.filter(m => m.userData.view === currentView);
+      const intersects = raycaster.intersectObjects(visibleNodes);
+
+      if (intersects.length > 0) {
+        const nodeIndex = intersects[0].object.userData.nodeIndex;
+        showNodeDetail(nodeIndex);
+      }
+    }
+
+    function onMouseMove(event) {
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      const visibleNodes = nodeMeshes.filter(m => m.userData.view === currentView);
+      const intersects = raycaster.intersectObjects(visibleNodes);
+
+      renderer.domElement.style.cursor = intersects.length > 0 ? 'pointer' : 'grab';
+    }
+
+    function showNodeDetail(nodeIndex) {
+      const node = proofData.nodes[nodeIndex];
+      const panel = document.getElementById('detail-panel');
+
+      document.getElementById('detail-title').textContent = node.label || `Node ${node.id}`;
+      document.getElementById('detail-id').textContent = node.id;
+
+      const kindEl = document.getElementById('detail-kind');
+      kindEl.textContent = kindNames[node.kind] || node.kind;
+      kindEl.style.background = kindColorCSS[node.kind] || '#666';
+      kindEl.style.color = ['bvar', 'fvar', 'sort'].includes(node.kind) ? '#000' : '#fff';
+
+      document.getElementById('detail-label').textContent = node.label;
+
+      const children = nodeChildren[node.id] || [];
+      document.getElementById('detail-children').textContent = children.length > 0
+        ? children.map(c => proofData.nodes[c].label).join(', ')
+        : '(none)';
+
+      const parents = nodeParents[node.id] || [];
+      document.getElementById('detail-parent').textContent = parents.length > 0
+        ? parents.map(p => proofData.nodes[p].label).join(', ')
+        : '(root or leaf)';
+
+      panel.classList.add('visible');
+    }
+
+    function hideDetail() {
+      document.getElementById('detail-panel').classList.remove('visible');
     }
 
     function resetCamera() {

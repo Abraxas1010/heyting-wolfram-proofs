@@ -74,31 +74,97 @@ shortLabelOf[v_] := Module[{lbl = labelOf[v]},
   If[StringLength[lbl] > 24, StringTake[lbl, 21] <> "…", lbl]
 ];
 
-(* Hypergraph plot *)
+(* Hypergraph plot - Wolfram Physics style *)
 setReplaceOk = (Quiet @ Check[Needs["SetReplace`"]; True, False]) === True;
+
+(* Wolfram Physics dark theme styling *)
+darkBackground = RGBColor[0.05, 0.05, 0.05];
+vertexColor = RGBColor[0.95, 0.95, 0.95];
+
+(* Custom color function for hyperedges like Wolfram Physics gallery *)
+edgeColorFunc = ColorData["Rainbow"];
 
 hgPlot =
   If[setReplaceOk,
     WolframModelPlot[
       hyper,
-      VertexSize -> 0.25,
+      VertexSize -> 0.4,
+      "EdgePolygonStyle" -> Opacity[0.2],
+      VertexStyle -> Directive[vertexColor, EdgeForm[None]],
+      VertexLabels -> None,  (* Remove labels for cleaner look *)
+      Background -> darkBackground,
+      ImageSize -> 800,
+      PlotRangePadding -> Scaled[0.1]
+    ],
+    (* Fallback to HypergraphPlot if SetReplace not available *)
+    HypergraphPlot[
+      hyper,
+      VertexLabels -> None,
+      VertexStyle -> vertexColor,
+      Background -> darkBackground,
+      ImageSize -> 800
+    ]
+  ];
+
+Export[FileNameJoin[{outDir, modelKey <> "_term_hypergraph.png"}], hgPlot];
+
+(* Also export a labeled version for reference *)
+hgPlotLabeled =
+  If[setReplaceOk,
+    WolframModelPlot[
+      hyper,
+      VertexSize -> 0.3,
+      "EdgePolygonStyle" -> Opacity[0.15],
+      VertexStyle -> Directive[vertexColor, EdgeForm[None]],
       VertexLabels -> Placed[
-        Thread[Union[Flatten[hyper]] -> (Tooltip[shortLabelOf[#], labelOf[#]] & /@ Union[Flatten[hyper]])],
-        Center
-      ]
+        Thread[Union[Flatten[hyper]] -> (Style[shortLabelOf[#], 6, White] & /@ Union[Flatten[hyper]])],
+        Tooltip
+      ],
+      Background -> darkBackground,
+      ImageSize -> 1200,
+      PlotRangePadding -> Scaled[0.1]
     ],
     HypergraphPlot[
       hyper,
       VertexLabels -> Placed[
         Thread[Union[Flatten[hyper]] -> (Tooltip[shortLabelOf[#], labelOf[#]] & /@ Union[Flatten[hyper]])],
         Center
-      ]
+      ],
+      Background -> darkBackground,
+      ImageSize -> 1200
     ]
   ];
 
-Export[FileNameJoin[{outDir, modelKey <> "_term_hypergraph.png"}], hgPlot];
+Export[FileNameJoin[{outDir, modelKey <> "_term_hypergraph_labeled.png"}], hgPlotLabeled];
 
-(* Directed “proof DAG” view: premise → parent (parent = last vertex in each hyperedge). *)
+(* Export 3D version for X3D/WebGL viewing *)
+hgPlot3D =
+  If[setReplaceOk,
+    WolframModelPlot[
+      hyper,
+      VertexSize -> 0.5,
+      "EdgePolygonStyle" -> Opacity[0.3],
+      VertexStyle -> Directive[White, Specularity[White, 20]],
+      VertexLabels -> None,
+      Background -> Black,
+      "HyperedgeRendering" -> "Subgraphs",
+      GraphLayout3D -> "SpringElectricalEmbedding",
+      ImageSize -> 800,
+      ViewPoint -> {2, 2, 2}
+    ],
+    Graphics3D[{
+      White, PointSize[0.02],
+      Point /@ Table[{RandomReal[], RandomReal[], RandomReal[]}, Length[Union[Flatten[hyper]]]]
+    }, Background -> Black, ImageSize -> 800]
+  ];
+
+(* Export as X3D for 3D/VR viewing *)
+Export[FileNameJoin[{outDir, modelKey <> "_term_hypergraph.x3d"}], hgPlot3D];
+
+(* Also export a high-quality PNG of 3D view *)
+Export[FileNameJoin[{outDir, modelKey <> "_term_hypergraph_3d.png"}], hgPlot3D];
+
+(* Directed "proof DAG" view: premise → parent (parent = last vertex in each hyperedge). *)
 dirEdges = Flatten[
   Table[
     DirectedEdge[child, Last[edge]],
@@ -108,12 +174,28 @@ dirEdges = Flatten[
   1
 ];
 
+(* Color nodes by kind *)
+kindColors = <|
+  "lam" -> RGBColor[0.4, 0.7, 0.9],     (* cyan for lambda *)
+  "app" -> RGBColor[0.6, 0.4, 0.9],     (* purple for app *)
+  "const" -> RGBColor[0.9, 0.6, 0.1],   (* orange for const *)
+  "bvar" -> RGBColor[0.4, 0.9, 0.4],    (* green for bound var *)
+  "mdata" -> RGBColor[0.5, 0.5, 0.5]    (* gray for metadata *)
+|>;
+
+nodeColorOf[v_] := Lookup[kindColors, Lookup[kindAssoc, v, ""], White];
+
 dagPlot =
   Graph[
     DeleteDuplicates[dirEdges],
-    VertexLabels -> (v_ :> Placed[Tooltip[shortLabelOf[v], kindAssoc[v] <> ": " <> labelOf[v]], Center]),
+    VertexLabels -> (v_ :> Placed[Style[shortLabelOf[v], 8, White], Above]),
+    VertexStyle -> (v_ :> Directive[nodeColorOf[v], EdgeForm[{Thin, GrayLevel[0.3]}]]),
+    VertexSize -> 0.4,
+    EdgeStyle -> Directive[GrayLevel[0.4], Arrowheads[0.02]],
     GraphLayout -> "LayeredDigraphEmbedding",
-    ImageSize -> 900
+    Background -> darkBackground,
+    ImageSize -> 1000,
+    ImagePadding -> 30
   ];
 
 Export[FileNameJoin[{outDir, modelKey <> "_term_dag.png"}], dagPlot];
@@ -138,9 +220,14 @@ If[Length[constMetaFiles] >= 1,
       cplot =
         Graph[
           DeleteDuplicates[cdir],
-          VertexLabels -> (v_ :> Placed[Tooltip[labelConst[v], labelConst[v]], Center]),
+          VertexLabels -> (v_ :> Placed[Style[labelConst[v], 10, White], Above]),
+          VertexStyle -> Directive[RGBColor[0.9, 0.6, 0.1], EdgeForm[{Thin, GrayLevel[0.3]}]],
+          VertexSize -> 0.5,
+          EdgeStyle -> Directive[GrayLevel[0.4], Arrowheads[0.03]],
           GraphLayout -> "LayeredDigraphEmbedding",
-          ImageSize -> 900
+          Background -> darkBackground,
+          ImageSize -> 1000,
+          ImagePadding -> 40
         ];
       Export[FileNameJoin[{outDir, constModel <> "_dag.png"}], cplot];
     ];

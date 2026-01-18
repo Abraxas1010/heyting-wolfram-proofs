@@ -44,9 +44,18 @@ steps = {};
 
 availableEdgeQ[edge_List] := SubsetQ[known, Most[edge]];
 
+(* Track stall diagnostics *)
+stalledIteration = 0;
+blockedSample = {};
+
 While[True,
   avail = Select[remaining, availableEdgeQ];
-  If[Length[avail] == 0, Break[]];
+  If[Length[avail] == 0,
+    (* Stalled - record diagnostic info *)
+    stalledIteration = Length[steps];
+    blockedSample = Take[remaining, Min[5, Length[remaining]]];
+    Break[];
+  ];
   pick = First @ SortBy[avail, Last];
   parent = Last[pick];
   If[!MemberQ[known, parent],
@@ -65,7 +74,10 @@ payload = <|
   "leafCount" -> Length[leaves],
   "hyperedgeCount" -> Length[hyper],
   "steps" -> steps,
-  "order" -> order
+  "order" -> order,
+  "remainingCount" -> Length[remaining],
+  "stalledAfterStep" -> stalledIteration,
+  "blockedSample" -> blockedSample
 |>;
 
 Print[ExportString[payload, "JSON", "Compact" -> True]];

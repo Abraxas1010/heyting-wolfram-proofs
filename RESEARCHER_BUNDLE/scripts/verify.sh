@@ -4,9 +4,9 @@ set -euo pipefail
 echo "=== Wolfram-Lean Bridge Verification ==="
 echo ""
 
-# Check for sorry/admit
+# Check for sorry/admit (recursive scan of ALL Lean files)
 echo "Checking for sorry/admit..."
-if grep -rn "sorry\|admit" HeytingLean/*.lean 2>/dev/null; then
+if grep -RIn --include='*.lean' -E '\b(sorry|admit)\b' HeytingLean/ 2>/dev/null; then
     echo "ERROR: Found sorry/admit in codebase"
     exit 1
 fi

@@ -78,8 +78,10 @@ private def importProject (extraModules : List String := []) : IO Environment :=
   let extras : Array Import := extraModules.toArray.map (fun s => { module := nameOfDotted s })
   importModules (#[{ module := `Init }, { module := `HeytingLean }] ++ extras) {}
 
+/-- Direct O(1) lookup using Name instead of O(n) string scan -/
 private def findConst (env : Environment) (full : String) : Option Name :=
-  env.constants.toList.findSome? (fun (n, _ci) => if n.toString = full then some n else none)
+  let nm := nameOfDotted full
+  if env.constants.contains nm then some nm else none
 
 private def constantValueExpr? : ConstantInfo → Option Expr
   | ConstantInfo.thmInfo thm     => some thm.value
@@ -104,6 +106,7 @@ structure GraphState where
   next : Nat := 0
   nodes : Array Node := #[]
   edges : Array Edge := #[]
+  memo : Std.HashMap Expr Nat := {}
 deriving Inhabited
 
 abbrev GM := StateM GraphState
@@ -135,32 +138,38 @@ private def nodeLabel (e : Expr) : String :=
   | _ => ""
 
 private def walkFuel (fuel : Nat) (e : Expr) (depth : Nat) : GM Nat := do
-  match fuel with
-  | 0 =>
-      let id := (← get).next
-      modify fun s =>
-        { s with
-          next := s.next + 1
-          nodes := s.nodes.push { id, kind := "term", depth, label := "… (fuel exhausted)" } }
-      return id
-  | fuel + 1 =>
-      let id := (← get).next
-      modify fun s =>
-        { s with
-          next := s.next + 1
-          nodes := s.nodes.push { id, kind := nodeKind e, depth, label := nodeLabel e } }
-      let attach (child : Expr) (lbl : String := "") : GM Unit := do
-        let cid ← walkFuel fuel child (depth + 1)
-        modify fun s => { s with edges := s.edges.push { src := id, dst := cid, label := lbl } }
-      match e with
-      | .forallE _ ty b _ => do attach ty "ty"; attach b "body"
-      | .lam _ ty b _     => do attach ty "ty"; attach b "body"
-      | .app f a          => do attach f "f"; attach a "a"
-      | .letE _ ty v b _  => do attach ty "ty"; attach v "val"; attach b "body"
-      | .mdata _ b        => do attach b "m"
-      | .proj _ _ b       => do attach b "struct"
-      | _                 => pure ()
-      return id
+  -- Check memo first to avoid duplicate traversal of same Expr subterm
+  match (← get).memo.get? e with
+  | some cachedId => return cachedId
+  | none =>
+      match fuel with
+      | 0 =>
+          let id := (← get).next
+          modify fun s =>
+            { s with
+              next := s.next + 1
+              nodes := s.nodes.push { id, kind := "term", depth, label := "… (fuel exhausted)" }
+              memo := s.memo.insert e id }
+          return id
+      | fuel + 1 =>
+          let id := (← get).next
+          modify fun s =>
+            { s with
+              next := s.next + 1
+              nodes := s.nodes.push { id, kind := nodeKind e, depth, label := nodeLabel e }
+              memo := s.memo.insert e id }
+          let attach (child : Expr) (lbl : String := "") : GM Unit := do
+            let cid ← walkFuel fuel child (depth + 1)
+            modify fun s => { s with edges := s.edges.push { src := id, dst := cid, label := lbl } }
+          match e with
+          | .forallE _ ty b _ => do attach ty "ty"; attach b "body"
+          | .lam _ ty b _     => do attach ty "ty"; attach b "body"
+          | .app f a          => do attach f "f"; attach a "a"
+          | .letE _ ty v b _  => do attach ty "ty"; attach v "val"; attach b "body"
+          | .mdata _ b        => do attach b "m"
+          | .proj _ _ b       => do attach b "struct"
+          | _                 => pure ()
+          return id
 
 private def walk (e : Expr) (fuel : Nat) : GraphState :=
   let (_, st) := (walkFuel fuel e 0).run {}
@@ -208,17 +217,31 @@ private def encodeU64LEList (xs : List UInt64) : ByteArray :=
     return acc
   ByteArray.mk out
 
+/-- Maximum safe value for Wolfram Integer64 compatibility (2^63 - 1) -/
+private def maxSafeInt64 : Nat := 9223372036854775807
+
+/-- Check if all Nat values are safe for Int64 encoding (< 2^63) -/
+private def validateInt64Safe (xs : List Nat) : Except String Unit :=
+  match xs.find? (· > maxSafeInt64) with
+  | some v => .error s!"vertex ID {v} exceeds Int64 max (>= 2^63); Wolfram will misinterpret"
+  | none => .ok ()
+
 private def flattenHyperedges (edges : Array (Array Nat)) : List Nat :=
   edges.foldl (fun acc e => acc ++ e.toList) []
 
 private def hyperedgeLengths (edges : Array (Array Nat)) : List Nat :=
   edges.toList.map (fun e => e.size)
 
-private def writeHypergraphBin (dataPath lengthsPath : FilePath) (edges : Array (Array Nat)) : IO Unit := do
-  let lens := hyperedgeLengths edges |>.map (UInt64.ofNat ·)
-  let flat := flattenHyperedges edges |>.map (UInt64.ofNat ·)
-  IO.FS.writeBinFile lengthsPath (encodeU64LEList lens)
-  IO.FS.writeBinFile dataPath (encodeU64LEList flat)
+private def writeHypergraphBin (dataPath lengthsPath : FilePath) (edges : Array (Array Nat)) : IO (Except String Unit) := do
+  let lens := hyperedgeLengths edges
+  let flat := flattenHyperedges edges
+  -- Validate all values fit in signed Int64 for Wolfram compatibility
+  match validateInt64Safe (flat ++ lens) with
+  | .error e => return .error e
+  | .ok _ =>
+      IO.FS.writeBinFile lengthsPath (encodeU64LEList (lens.map UInt64.ofNat))
+      IO.FS.writeBinFile dataPath (encodeU64LEList (flat.map UInt64.ofNat))
+      return .ok ()
 
 private def getD {α β} [BEq α] [Hashable α] (m : Std.HashMap α β) (k : α) (default : β) : β :=
   match m.get? k with
@@ -271,8 +294,10 @@ private def buildConstDependencyGraph (nodes : Array Node) (target : String) :
   let tgtId := getD idOf target 0
   let mut edges : Array (Array Nat) := #[]
   for c in consts do
-    let did := getD idOf c 0
-    edges := edges.push #[did, tgtId]
+    -- Skip self-edge (when c == target)
+    if c != target then
+      let did := getD idOf c 0
+      edges := edges.push #[did, tgtId]
   return (edges, names)
 
 private partial def findRepoRoot (start : FilePath) (fuel : Nat := 6) : IO (Option FilePath) := do
@@ -494,7 +519,11 @@ def main (args : List String) : IO UInt32 := do
   let termMeta := outDir / s!"{slugName}_{cfg.exprKind}_metadata.json"
   let termGraphJson := outDir / s!"{slugName}_{cfg.exprKind}_graph.json"
 
-  writeHypergraphBin termData termLens hyper
+  match (← writeHypergraphBin termData termLens hyper) with
+  | .error e =>
+      IO.eprintln s!"E: {e}"
+      return 2
+  | .ok _ => pure ()
 
   let termMetaJ :=
     Json.mkObj
@@ -527,7 +556,11 @@ def main (args : List String) : IO UInt32 := do
   let depData := outDir / s!"{slugName}_constdeps_hypergraph.bin"
   let depLens := outDir / s!"{slugName}_constdeps_lengths.bin"
   let depMeta := outDir / s!"{slugName}_constdeps_metadata.json"
-  writeHypergraphBin depData depLens depEdges
+  match (← writeHypergraphBin depData depLens depEdges) with
+  | .error e =>
+      IO.eprintln s!"E: {e}"
+      return 2
+  | .ok _ => pure ()
   let depLabels := Json.arr (depLabelArr.map Json.str)
   let depMetaJ :=
     Json.mkObj

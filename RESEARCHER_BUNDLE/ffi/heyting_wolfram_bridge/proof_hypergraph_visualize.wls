@@ -75,7 +75,17 @@ shortLabelOf[v_] := Module[{lbl = labelOf[v]},
 ];
 
 (* Hypergraph plot - Wolfram Physics style *)
-setReplaceOk = (Quiet @ Check[Needs["SetReplace`"]; True, False]) === True;
+(* Load SetReplace with proper context handling to avoid symbol conflicts *)
+setReplaceOk = Quiet @ Check[
+  Block[{$ContextPath = $ContextPath},
+    PacletInstall["SetReplace", "UpdatePacletSites" -> False];
+    Needs["SetReplace`"];
+  ];
+  TrueQ[MatchQ[WolframModelPlot, _Symbol]],
+  False
+];
+
+Print["SetReplace loaded: ", setReplaceOk];
 
 (* Wolfram Physics dark theme styling *)
 darkBackground = RGBColor[0.05, 0.05, 0.05];
@@ -84,6 +94,7 @@ vertexColor = RGBColor[0.95, 0.95, 0.95];
 (* Custom color function for hyperedges like Wolfram Physics gallery *)
 edgeColorFunc = ColorData["Rainbow"];
 
+(* 2D Wolfram Physics style hypergraph *)
 hgPlot =
   If[setReplaceOk,
     WolframModelPlot[
@@ -107,6 +118,7 @@ hgPlot =
   ];
 
 Export[FileNameJoin[{outDir, modelKey <> "_term_hypergraph.png"}], hgPlot];
+Print["Exported: ", modelKey <> "_term_hypergraph.png"];
 
 (* Also export a labeled version for reference *)
 hgPlotLabeled =
@@ -136,33 +148,64 @@ hgPlotLabeled =
   ];
 
 Export[FileNameJoin[{outDir, modelKey <> "_term_hypergraph_labeled.png"}], hgPlotLabeled];
+Print["Exported: ", modelKey <> "_term_hypergraph_labeled.png"];
 
-(* Export 3D version for X3D/WebGL viewing *)
-hgPlot3D =
-  If[setReplaceOk,
-    WolframModelPlot[
-      hyper,
-      VertexSize -> 0.5,
-      "EdgePolygonStyle" -> Opacity[0.3],
-      VertexStyle -> Directive[White, Specularity[White, 20]],
-      VertexLabels -> None,
-      Background -> Black,
-      "HyperedgeRendering" -> "Subgraphs",
-      GraphLayout3D -> "SpringElectricalEmbedding",
-      ImageSize -> 800,
-      ViewPoint -> {2, 2, 2}
+(* 3D version using Graph3D for X3D export compatibility *)
+(* Convert hyperedges to directed edges for 3D visualization *)
+dirEdges3D = DeleteDuplicates @ Flatten[
+  Table[
+    DirectedEdge[child, Last[edge]],
+    {edge, hyper},
+    {child, Most[edge]}
+  ],
+  1
+];
+
+(* Build 3D proof graph with spring-electrical embedding *)
+vertices3D = Union[Flatten[hyper]];
+vertexCoords3D = Association @ Thread[
+  vertices3D -> GraphEmbedding[
+    Graph[dirEdges3D],
+    {"SpringElectricalEmbedding", "Dimension" -> 3}
+  ]
+];
+
+(* Create 3D graphics with spheres and tubes *)
+hgPlot3D = Graphics3D[{
+  (* Vertices as glowing spheres *)
+  White, Specularity[White, 20],
+  Table[
+    With[{pos = vertexCoords3D[v]},
+      {Sphere[pos, 0.03]}
     ],
-    Graphics3D[{
-      White, PointSize[0.02],
-      Point /@ Table[{RandomReal[], RandomReal[], RandomReal[]}, Length[Union[Flatten[hyper]]]]
-    }, Background -> Black, ImageSize -> 800]
-  ];
+    {v, vertices3D}
+  ],
+  (* Edges as tubes *)
+  GrayLevel[0.5], Opacity[0.7],
+  Table[
+    With[{
+      p1 = vertexCoords3D[edge[[1]]],
+      p2 = vertexCoords3D[edge[[2]]]
+    },
+      Tube[{p1, p2}, 0.008]
+    ],
+    {edge, dirEdges3D}
+  ]
+},
+  Background -> Black,
+  Lighting -> {{"Ambient", White}, {"Directional", White, {1, 1, 1}}},
+  ImageSize -> 800,
+  ViewPoint -> {2, 2, 2},
+  Boxed -> False
+];
 
 (* Export as X3D for 3D/VR viewing *)
 Export[FileNameJoin[{outDir, modelKey <> "_term_hypergraph.x3d"}], hgPlot3D];
+Print["Exported: ", modelKey <> "_term_hypergraph.x3d"];
 
 (* Also export a high-quality PNG of 3D view *)
 Export[FileNameJoin[{outDir, modelKey <> "_term_hypergraph_3d.png"}], hgPlot3D];
+Print["Exported: ", modelKey <> "_term_hypergraph_3d.png"];
 
 (* Directed "proof DAG" view: premise → parent (parent = last vertex in each hyperedge). *)
 dirEdges = Flatten[
@@ -199,6 +242,50 @@ dagPlot =
   ];
 
 Export[FileNameJoin[{outDir, modelKey <> "_term_dag.png"}], dagPlot];
+Print["Exported: ", modelKey <> "_term_dag.png"];
+
+(* 3D DAG visualization for the proof structure *)
+dagCoords3D = Association @ Thread[
+  Union[Flatten[List @@@ dirEdges]] -> GraphEmbedding[
+    Graph[DeleteDuplicates[dirEdges]],
+    {"SpringElectricalEmbedding", "Dimension" -> 3}
+  ]
+];
+
+dagPlot3D = Graphics3D[{
+  (* Vertices as colored spheres based on node kind *)
+  Table[
+    With[{pos = dagCoords3D[v], col = nodeColorOf[v]},
+      {col, Specularity[White, 20], Sphere[pos, 0.04]}
+    ],
+    {v, Keys[dagCoords3D]}
+  ],
+  (* Directed edges as tubes with arrows *)
+  GrayLevel[0.4], Opacity[0.8],
+  Table[
+    With[{
+      p1 = dagCoords3D[edge[[1]]],
+      p2 = dagCoords3D[edge[[2]]]
+    },
+      {Tube[{p1, p2}, 0.01],
+       (* Arrow tip *)
+       Cone[{p2 - 0.05 * Normalize[p2 - p1], p2}, 0.02]}
+    ],
+    {edge, DeleteDuplicates[dirEdges]}
+  ]
+},
+  Background -> Black,
+  Lighting -> {{"Ambient", White}, {"Directional", White, {1, 1, 1}}},
+  ImageSize -> 800,
+  ViewPoint -> {2, 2, 2},
+  Boxed -> False
+];
+
+Export[FileNameJoin[{outDir, modelKey <> "_term_dag.x3d"}], dagPlot3D];
+Print["Exported: ", modelKey <> "_term_dag.x3d"];
+
+Export[FileNameJoin[{outDir, modelKey <> "_term_dag_3d.png"}], dagPlot3D];
+Print["Exported: ", modelKey <> "_term_dag_3d.png"];
 
 (* Optional: collapsed constant-dependency view if present. *)
 constMetaFiles = FileNames["*_constdeps_metadata.json", outDir];

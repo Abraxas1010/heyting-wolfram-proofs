@@ -102,6 +102,15 @@ private def encodeU64LEList (xs : List UInt64) : ByteArray :=
     return acc
   ByteArray.mk out
 
+/-- Maximum safe value for Wolfram Integer64 compatibility (2^63 - 1) -/
+private def maxSafeInt64 : Nat := 9223372036854775807
+
+/-- Check if all Nat values are safe for Int64 encoding (< 2^63) -/
+private def validateInt64Safe (xs : List Nat) : Except String Unit :=
+  match xs.find? (· > maxSafeInt64) with
+  | some v => .error s!"vertex ID {v} exceeds Int64 max (>= 2^63); Wolfram will misinterpret"
+  | none => .ok ()
+
 private def decodeU64AtLE (bytes : ByteArray) (offset : Nat) : UInt64 :=
   let rec go (i : Nat) (pow : Nat) (acc : Nat) : Nat :=
     if i < 8 then
@@ -154,11 +163,16 @@ private def readHypergraph (dataPath lengthsPath : FilePath) : IO (Except String
       let data := dataU.map (·.toNat)
       return splitByLengths lens data
 
-private def writeHypergraph (dataPath lengthsPath : FilePath) (edges : List (List Nat)) : IO Unit := do
-  let lens := edgeLengths edges |>.map UInt64.ofNat
-  let flat := flattenEdges edges |>.map UInt64.ofNat
-  IO.FS.writeBinFile lengthsPath (encodeU64LEList lens)
-  IO.FS.writeBinFile dataPath (encodeU64LEList flat)
+private def writeHypergraph (dataPath lengthsPath : FilePath) (edges : List (List Nat)) : IO (Except String Unit) := do
+  let lens := edgeLengths edges
+  let flat := flattenEdges edges
+  -- Validate all values fit in signed Int64 for Wolfram compatibility
+  match validateInt64Safe (flat ++ lens) with
+  | .error e => return .error e
+  | .ok _ =>
+      IO.FS.writeBinFile lengthsPath (encodeU64LEList (lens.map UInt64.ofNat))
+      IO.FS.writeBinFile dataPath (encodeU64LEList (flat.map UInt64.ofNat))
+      return .ok ()
 
 private def readVerifiedMetric? (metaPath : FilePath) : IO (Option Nat) := do
   if !(← metaPath.pathExists) then
@@ -198,7 +212,9 @@ private def echoDemo (root : FilePath) (outDir : FilePath) : IO (Except String U
   catch e =>
     return .error s!"failed to create out dir {outDir}: {e}"
 
-  writeHypergraph inData inLens demoEdges
+  match (← writeHypergraph inData inLens demoEdges) with
+  | .error e => return .error e
+  | .ok _ => pure ()
 
   let echoWls := root / "ffi" / "heyting_wolfram_bridge" / "echo_hypergraph_binary.wls"
   if !(← echoWls.pathExists) then

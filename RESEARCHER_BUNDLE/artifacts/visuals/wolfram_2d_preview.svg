@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+  <defs>
+    <linearGradient id="bg2d" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0a0a"/>
+      <stop offset="100%" style="stop-color:#000000"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="400" height="300" fill="url(#bg2d)"/>
+
+  <!-- Grid lines -->
+  <g stroke="rgba(255,255,255,0.05)" stroke-width="1">
+    <line x1="0" y1="75" x2="400" y2="75"/>
+    <line x1="0" y1="150" x2="400" y2="150"/>
+    <line x1="0" y1="225" x2="400" y2="225"/>
+    <line x1="100" y1="0" x2="100" y2="300"/>
+    <line x1="200" y1="0" x2="200" y2="300"/>
+    <line x1="300" y1="0" x2="300" y2="300"/>
+  </g>
+
+  <!-- Edges -->
+  <g stroke="rgba(255,255,255,0.15)" stroke-width="1" fill="none">
+    <line x1="60" y1="120" x2="200" y2="60"/>
+    <line x1="100" y1="150" x2="200" y2="60"/>
+    <line x1="120" y1="180" x2="200" y2="60"/>
+    <line x1="140" y1="165" x2="200" y2="60"/>
+    <line x1="280" y1="135" x2="200" y2="60"/>
+    <line x1="300" y1="165" x2="200" y2="60"/>
+    <line x1="320" y1="150" x2="200" y2="60"/>
+    <line x1="220" y1="225" x2="200" y2="60"/>
+    <line x1="240" y1="255" x2="200" y2="60"/>
+  </g>
+
+  <!-- Core cluster (left) -->
+  <circle cx="60" cy="120" r="8" fill="#ef4444"/>
+  <rect x="92" y="142" width="16" height="16" rx="2" fill="#8b5cf6"/>
+  <rect x="112" y="172" width="16" height="16" rx="2" fill="#8b5cf6"/>
+  <rect x="132" y="157" width="16" height="16" rx="2" fill="#8b5cf6"/>
+
+  <!-- Main theorem (center) - hexagon -->
+  <polygon points="200,45 218,52.5 218,67.5 200,75 182,67.5 182,52.5" fill="#f59e0b" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+
+  <!-- BB84 cluster (right) -->
+  <rect x="272" y="127" width="16" height="16" rx="2" fill="#f59e0b"/>
+  <rect x="292" y="157" width="16" height="16" rx="2" fill="#f59e0b"/>
+  <rect x="312" y="142" width="16" height="16" rx="2" fill="#f59e0b"/>
+
+  <!-- Supporting lemmas (bottom) -->
+  <polygon points="220,213 231,219 231,231 220,237 209,231 209,219" fill="#f59e0b" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+  <polygon points="240,243 251,249 251,261 240,267 229,261 229,249" fill="#f59e0b" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+
+  <!-- Title -->
+  <text x="200" y="285" fill="#fafafa" font-family="Inter, sans-serif" font-size="11" text-anchor="middle">2D Proof Dependency Map</text>
+
+  <!-- Legend -->
+  <g transform="translate(15, 15)">
+    <rect width="90" height="55" rx="4" fill="rgba(0,0,0,0.6)" stroke="rgba(255,255,255,0.1)"/>
+    <circle cx="15" cy="15" r="5" fill="#ef4444"/>
+    <text x="25" y="18" fill="#9ca3af" font-family="Inter, sans-serif" font-size="8">Core</text>
+    <rect x="10" y="26" width="10" height="10" rx="2" fill="#8b5cf6"/>
+    <text x="25" y="34" fill="#9ca3af" font-family="Inter, sans-serif" font-size="8">Constructor</text>
+    <rect x="10" y="40" width="10" height="10" rx="2" fill="#f59e0b"/>
+    <text x="25" y="48" fill="#9ca3af" font-family="Inter, sans-serif" font-size="8">QKD/BB84</text>
+  </g>
+</svg>

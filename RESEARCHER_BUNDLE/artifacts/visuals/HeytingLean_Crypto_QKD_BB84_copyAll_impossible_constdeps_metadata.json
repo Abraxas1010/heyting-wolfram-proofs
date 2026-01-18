@@ -1,0 +1,16 @@
+{"vertexCount": 10,
+ "schema": "HeytingLean/ProofConstDeps/v1",
+ "model": "constdeps_HeytingLean_Crypto_QKD_BB84_copyAll_impossible",
+ "labels":
+ ["HeytingLean.Crypto.QKD.BB84.copyAll_impossible",
+  "False",
+  "HeytingLean.Constructor.CT.TaskCT.Ctor",
+  "HeytingLean.Constructor.CT.TaskCT.implements",
+  "HeytingLean.Constructor.CT.TaskCT.possible",
+  "HeytingLean.Crypto.QKD.BB84.BB84Substrate",
+  "HeytingLean.Crypto.QKD.BB84.bb84TaskCT",
+  "HeytingLean.Crypto.QKD.BB84.copyAll",
+  "HeytingLean.Crypto.QKD.BB84.copyAll_impossible.match_1_1",
+  "HeytingLean.Crypto.QKD.BB84.not_implements_copyAll"],
+ "finalStateSize": 9,
+ "constant": "HeytingLean.Crypto.QKD.BB84.copyAll_impossible"}

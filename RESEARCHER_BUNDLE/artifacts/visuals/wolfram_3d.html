@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Proof Map - Wolfram-Lean Bridge</title>
+  <script src="wolfram_proofs_data.js"></script>
+  <style>
+    :root {
+      --bg: #000000;
+      --card: #0a0a0a;
+      --border: rgba(255,255,255,0.1);
+      --text: #fafafa;
+      --dim: #9ca3af;
+      --accent: #60a5fa;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    .header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 16px 24px;
+      background: rgba(0,0,0,0.9);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+    }
+    .header h1 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .header h1 span {
+      color: var(--accent);
+    }
+    .search-box input {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: var(--text);
+      font-size: 13px;
+      width: 240px;
+    }
+    .search-box input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    #canvas {
+      position: fixed;
+      top: 60px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+    }
+    .legend {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 11px;
+      z-index: 100;
+    }
+    .legend h3 {
+      font-size: 10px;
+      color: var(--dim);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .legend-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+    }
+    .tooltip {
+      position: fixed;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 12px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+      max-width: 300px;
+      z-index: 200;
+    }
+    .tooltip.visible { opacity: 1; }
+    .tooltip h4 { font-size: 13px; margin-bottom: 6px; }
+    .tooltip .kind {
+      display: inline-block;
+      padding: 2px 6px;
+      background: var(--accent);
+      border-radius: 3px;
+      font-size: 10px;
+      margin-bottom: 6px;
+    }
+    .tooltip .family { color: var(--dim); font-size: 11px; }
+    .controls {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      gap: 8px;
+      z-index: 100;
+    }
+    .controls button {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+    .controls button:hover { border-color: var(--accent); }
+    .controls button.active {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Wolfram-Lean Bridge <span>3D Proof Map</span></h1>
+    <div class="search-box">
+      <input type="text" id="search" placeholder="Search declarations...">
+    </div>
+  </div>
+
+  <canvas id="canvas"></canvas>
+
+  <div class="legend">
+    <h3>Families</h3>
+    <div class="legend-item"><div class="legend-color" style="background: #ef4444;"></div> Core</div>
+    <div class="legend-item"><div class="legend-color" style="background: #8b5cf6;"></div> Constructor</div>
+    <div class="legend-item"><div class="legend-color" style="background: #f59e0b;"></div> QKD/BB84</div>
+  </div>
+
+  <div class="tooltip" id="tooltip">
+    <h4 id="tooltip-name"></h4>
+    <span class="kind" id="tooltip-kind"></span>
+    <div class="family" id="tooltip-family"></div>
+  </div>
+
+  <div class="controls">
+    <button id="autoRotateBtn" onclick="toggleAutoRotate()">Auto Rotate</button>
+    <button onclick="resetView()">Reset</button>
+    <button onclick="zoomIn()">+</button>
+    <button onclick="zoomOut()">-</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const tooltip = document.getElementById('tooltip');
+
+    let width, height;
+    let rotationX = 0.3;
+    let rotationY = 0;
+    let scale = 1;
+    let isDragging = false;
+    let lastX, lastY;
+    let autoRotate = true;
+    let hoveredNode = null;
+    let searchTerm = '';
+
+    const nodeRadius = 10;
+    const items = wolframProofsData.items;
+    const edges = wolframProofsData.edges;
+
+    const colors = {
+      'Core': '#ef4444',
+      'Constructor': '#8b5cf6',
+      'QKD/BB84': '#f59e0b'
+    };
+
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight - 60;
+      canvas.width = width * window.devicePixelRatio;
+      canvas.height = height * window.devicePixelRatio;
+      canvas.style.width = width + 'px';
+      canvas.style.height = height + 'px';
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    }
+
+    function project(x, y, z) {
+      // Center in unit cube
+      x = (x - 0.5) * 2;
+      y = (y - 0.5) * 2;
+      z = (z - 0.5) * 2;
+
+      // Rotate around Y axis
+      const cosY = Math.cos(rotationY);
+      const sinY = Math.sin(rotationY);
+      const x1 = x * cosY - z * sinY;
+      const z1 = x * sinY + z * cosY;
+
+      // Rotate around X axis
+      const cosX = Math.cos(rotationX);
+      const sinX = Math.sin(rotationX);
+      const y1 = y * cosX - z1 * sinX;
+      const z2 = y * sinX + z1 * cosX;
+
+      // Perspective projection
+      const perspective = 3;
+      const pScale = perspective / (perspective + z2);
+
+      return {
+        x: width / 2 + x1 * 200 * scale * pScale,
+        y: height / 2 + y1 * 200 * scale * pScale,
+        z: z2,
+        scale: pScale
+      };
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, width, height);
+
+      // Project all nodes
+      const projected = items.map((item, i) => ({
+        ...project(item.pos.x, item.pos.y, item.pos.z),
+        item,
+        index: i
+      }));
+
+      // Sort by depth (back to front)
+      projected.sort((a, b) => a.z - b.z);
+
+      // Draw edges
+      ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+      ctx.lineWidth = 1;
+      edges.forEach(([from, to]) => {
+        const p1 = project(items[from].pos.x, items[from].pos.y, items[from].pos.z);
+        const p2 = project(items[to].pos.x, items[to].pos.y, items[to].pos.z);
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+      });
+
+      // Draw nodes
+      projected.forEach(({ x, y, scale: s, item, index }) => {
+        if (searchTerm && !item.name.toLowerCase().includes(searchTerm)) return;
+
+        const color = colors[item.family] || '#666';
+        const r = (item.kind === 'theorem' ? nodeRadius * 1.3 : nodeRadius) * s * scale;
+
+        // Depth-based opacity
+        const alpha = 0.5 + 0.5 * s;
+
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+
+        if (item.kind === 'theorem') {
+          // Hexagon
+          for (let j = 0; j < 6; j++) {
+            const angle = (j * Math.PI) / 3 - Math.PI / 6;
+            const px = x + r * Math.cos(angle);
+            const py = y + r * Math.sin(angle);
+            if (j === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+        } else {
+          ctx.arc(x, y, r, 0, Math.PI * 2);
+        }
+
+        ctx.fillStyle = color;
+        ctx.fill();
+
+        if (index === hoveredNode) {
+          ctx.globalAlpha = 1;
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+      });
+
+      ctx.globalAlpha = 1;
+    }
+
+    function findNodeAt(mx, my) {
+      // Check in reverse order (front to back)
+      const projected = items.map((item, i) => ({
+        ...project(item.pos.x, item.pos.y, item.pos.z),
+        item,
+        index: i
+      }));
+      projected.sort((a, b) => b.z - a.z);
+
+      for (const { x, y, scale: s, item, index } of projected) {
+        if (searchTerm && !item.name.toLowerCase().includes(searchTerm)) continue;
+        const r = (item.kind === 'theorem' ? nodeRadius * 1.3 : nodeRadius) * s * scale;
+        const dx = mx - x;
+        const dy = my - y;
+        if (dx * dx + dy * dy < r * r) return index;
+      }
+      return null;
+    }
+
+    function animate() {
+      if (autoRotate && !isDragging) {
+        rotationY += 0.003;
+      }
+      draw();
+      requestAnimationFrame(animate);
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      lastX = e.clientX;
+      lastY = e.clientY;
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+
+      if (isDragging) {
+        rotationY += (e.clientX - lastX) * 0.005;
+        rotationX += (e.clientY - lastY) * 0.005;
+        rotationX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, rotationX));
+        lastX = e.clientX;
+        lastY = e.clientY;
+      } else {
+        const node = findNodeAt(mx, my);
+        if (node !== hoveredNode) {
+          hoveredNode = node;
+          if (node !== null) {
+            const item = items[node];
+            document.getElementById('tooltip-name').textContent = item.name;
+            document.getElementById('tooltip-kind').textContent = item.kind;
+            document.getElementById('tooltip-family').textContent = item.family;
+            tooltip.style.left = (e.clientX + 15) + 'px';
+            tooltip.style.top = (e.clientY + 15) + 'px';
+            tooltip.classList.add('visible');
+          } else {
+            tooltip.classList.remove('visible');
+          }
+        }
+      }
+    });
+
+    canvas.addEventListener('mouseup', () => { isDragging = false; });
+    canvas.addEventListener('mouseleave', () => {
+      isDragging = false;
+      hoveredNode = null;
+      tooltip.classList.remove('visible');
+    });
+
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      scale *= e.deltaY > 0 ? 0.95 : 1.05;
+      scale = Math.max(0.5, Math.min(3, scale));
+    });
+
+    document.getElementById('search').addEventListener('input', (e) => {
+      searchTerm = e.target.value.toLowerCase();
+    });
+
+    function toggleAutoRotate() {
+      autoRotate = !autoRotate;
+      document.getElementById('autoRotateBtn').classList.toggle('active', autoRotate);
+    }
+
+    function resetView() {
+      scale = 1;
+      rotationX = 0.3;
+      rotationY = 0;
+    }
+
+    function zoomIn() { scale = Math.min(3, scale * 1.2); }
+    function zoomOut() { scale = Math.max(0.5, scale * 0.8); }
+
+    window.addEventListener('resize', resize);
+    resize();
+    document.getElementById('autoRotateBtn').classList.add('active');
+    animate();
+  </script>
+</body>
+</html>

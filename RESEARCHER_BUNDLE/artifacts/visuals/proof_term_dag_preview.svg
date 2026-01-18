@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+  <defs>
+    <linearGradient id="bgdag" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0a0a"/>
+      <stop offset="100%" style="stop-color:#000000"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="400" height="300" fill="url(#bgdag)"/>
+
+  <!-- Edges (bezier curves) -->
+  <g stroke="rgba(255,255,255,0.25)" stroke-width="1.5" fill="none">
+    <!-- Root to children -->
+    <path d="M 200,38 C 200,50 120,60 120,75"/>
+    <path d="M 200,38 C 200,50 280,60 280,75"/>
+
+    <!-- Level 2 connections -->
+    <path d="M 120,100 C 120,112 80,122 80,135"/>
+    <path d="M 120,100 C 120,112 160,122 160,135"/>
+    <path d="M 280,100 C 280,112 240,122 240,135"/>
+    <path d="M 280,100 C 280,112 320,122 320,135"/>
+
+    <!-- Level 3 connections -->
+    <path d="M 80,158 C 80,170 60,180 60,195"/>
+    <path d="M 80,158 C 80,170 100,180 100,195"/>
+    <path d="M 160,158 C 160,170 140,180 140,195"/>
+    <path d="M 160,158 C 160,170 180,180 180,195"/>
+    <path d="M 240,158 C 240,170 220,180 220,195"/>
+    <path d="M 240,158 C 240,170 260,180 260,195"/>
+    <path d="M 320,158 C 320,170 300,180 300,195"/>
+    <path d="M 320,158 C 320,170 340,180 340,195"/>
+  </g>
+
+  <!-- Root node (lam - diamond) -->
+  <polygon points="200,15 218,27 218,38 200,50 182,38 182,27" fill="#8b5cf6" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+  <text x="200" y="36" fill="#fff" font-family="JetBrains Mono, monospace" font-size="8" text-anchor="middle">λ h</text>
+
+  <!-- Level 1: app nodes -->
+  <rect x="95" y="78" width="50" height="20" rx="4" fill="#3b82f6"/>
+  <text x="120" y="92" fill="#fff" font-family="JetBrains Mono, monospace" font-size="7" text-anchor="middle">app</text>
+
+  <rect x="255" y="78" width="50" height="20" rx="4" fill="#3b82f6"/>
+  <text x="280" y="92" fill="#fff" font-family="JetBrains Mono, monospace" font-size="7" text-anchor="middle">app</text>
+
+  <!-- Level 2: mixed nodes -->
+  <rect x="55" y="138" width="50" height="20" rx="4" fill="#3b82f6"/>
+  <text x="80" y="152" fill="#fff" font-family="JetBrains Mono, monospace" font-size="7" text-anchor="middle">app</text>
+
+  <rect x="135" y="138" width="50" height="20" rx="4" fill="#f59e0b"/>
+  <text x="160" y="152" fill="#fff" font-family="JetBrains Mono, monospace" font-size="7" text-anchor="middle">copyAll</text>
+
+  <polygon points="240,128 255,138 255,148 240,158 225,148 225,138" fill="#8b5cf6"/>
+  <text x="240" y="147" fill="#fff" font-family="JetBrains Mono, monospace" font-size="7" text-anchor="middle">λ c</text>
+
+  <rect x="295" y="138" width="50" height="20" rx="4" fill="#f59e0b"/>
+  <text x="320" y="152" fill="#fff" font-family="JetBrains Mono, monospace" font-size="7" text-anchor="middle">bb84TC</text>
+
+  <!-- Level 3: const and bvar nodes -->
+  <ellipse cx="60" cy="207" rx="22" ry="12" fill="#22c55e"/>
+  <text x="60" y="211" fill="#fff" font-family="JetBrains Mono, monospace" font-size="7" text-anchor="middle">h</text>
+
+  <rect x="80" y="195" width="40" height="18" rx="4" fill="#f59e0b"/>
+  <text x="100" y="207" fill="#fff" font-family="JetBrains Mono, monospace" font-size="6" text-anchor="middle">possible</text>
+
+  <rect x="120" y="195" width="40" height="18" rx="4" fill="#f59e0b"/>
+  <text x="140" y="207" fill="#fff" font-family="JetBrains Mono, monospace" font-size="6" text-anchor="middle">BB84Sub</text>
+
+  <ellipse cx="180" cy="207" rx="18" ry="12" fill="#22c55e"/>
+  <text x="180" y="211" fill="#fff" font-family="JetBrains Mono, monospace" font-size="7" text-anchor="middle">c</text>
+
+  <rect x="200" y="195" width="40" height="18" rx="4" fill="#f59e0b"/>
+  <text x="220" y="207" fill="#fff" font-family="JetBrains Mono, monospace" font-size="6" text-anchor="middle">impl</text>
+
+  <ellipse cx="260" cy="207" rx="18" ry="12" fill="#22c55e"/>
+  <text x="260" y="211" fill="#fff" font-family="JetBrains Mono, monospace" font-size="7" text-anchor="middle">hc</text>
+
+  <rect x="280" y="195" width="40" height="18" rx="4" fill="#f59e0b"/>
+  <text x="300" y="207" fill="#fff" font-family="JetBrains Mono, monospace" font-size="6" text-anchor="middle">not_impl</text>
+
+  <rect x="320" y="195" width="40" height="18" rx="4" fill="#6b7280"/>
+  <text x="340" y="207" fill="#fff" font-family="JetBrains Mono, monospace" font-size="6" text-anchor="middle">mdata</text>
+
+  <!-- Title -->
+  <text x="200" y="250" fill="#fafafa" font-family="Inter, sans-serif" font-size="11" text-anchor="middle">Proof Term DAG (44 nodes, 22 hyperedges)</text>
+
+  <!-- Legend -->
+  <g transform="translate(15, 15)">
+    <rect width="70" height="70" rx="4" fill="rgba(0,0,0,0.6)" stroke="rgba(255,255,255,0.1)"/>
+    <rect x="10" y="10" width="10" height="10" rx="2" fill="#3b82f6"/>
+    <text x="25" y="18" fill="#9ca3af" font-family="Inter, sans-serif" font-size="7">app</text>
+    <polygon points="15,30 20,35 20,40 15,45 10,40 10,35" fill="#8b5cf6"/>
+    <text x="25" y="40" fill="#9ca3af" font-family="Inter, sans-serif" font-size="7">lam</text>
+    <ellipse cx="15" cy="55" rx="6" ry="4" fill="#22c55e"/>
+    <text x="25" y="58" fill="#9ca3af" font-family="Inter, sans-serif" font-size="7">bvar</text>
+  </g>
+</svg>

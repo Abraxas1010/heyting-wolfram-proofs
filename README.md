@@ -102,6 +102,13 @@ We humbly thank the collective intelligence of humanity for providing the techno
 | <a href="https://abraxas1010.github.io/heyting-wolfram-proofs/RESEARCHER_BUNDLE/artifacts/visuals/proof_HeytingLean_Crypto_QKD_BB84_copyAll_impossible_value_term_dag.png"><img src="RESEARCHER_BUNDLE/artifacts/visuals/proof_HeytingLean_Crypto_QKD_BB84_copyAll_impossible_value_term_dag.png" width="200"/></a> | **Layered DAG** — Proof term tree with depth-based layout (44 nodes, max depth 8) |
 | <a href="https://abraxas1010.github.io/heyting-wolfram-proofs/RESEARCHER_BUNDLE/artifacts/visuals/constdeps_HeytingLean_Crypto_QKD_BB84_copyAll_impossible_dag.png"><img src="RESEARCHER_BUNDLE/artifacts/visuals/constdeps_HeytingLean_Crypto_QKD_BB84_copyAll_impossible_dag.png" width="200"/></a> | **Const Dependencies** — Which lemmas/definitions the theorem uses (10 dependencies) |
 
+### 3D Visualizations (X3D/WebGL)
+
+| 3D View | Download |
+|---------|----------|
+| <a href="https://abraxas1010.github.io/heyting-wolfram-proofs/RESEARCHER_BUNDLE/artifacts/visuals/proof_HeytingLean_Crypto_QKD_BB84_copyAll_impossible_value_term_hypergraph_3d.png"><img src="RESEARCHER_BUNDLE/artifacts/visuals/proof_HeytingLean_Crypto_QKD_BB84_copyAll_impossible_value_term_hypergraph_3d.png" width="200"/></a> | **3D Hypergraph** — [Download X3D](RESEARCHER_BUNDLE/artifacts/visuals/proof_HeytingLean_Crypto_QKD_BB84_copyAll_impossible_value_term_hypergraph.x3d) for VR/3D viewing |
+| <a href="https://abraxas1010.github.io/heyting-wolfram-proofs/RESEARCHER_BUNDLE/artifacts/visuals/proof_HeytingLean_Crypto_QKD_BB84_copyAll_impossible_value_term_dag_3d.png"><img src="RESEARCHER_BUNDLE/artifacts/visuals/proof_HeytingLean_Crypto_QKD_BB84_copyAll_impossible_value_term_dag_3d.png" width="200"/></a> | **3D Proof DAG** — [Download X3D](RESEARCHER_BUNDLE/artifacts/visuals/proof_HeytingLean_Crypto_QKD_BB84_copyAll_impossible_value_term_dag.x3d) for VR/3D viewing |
+
 ---
 
 ## Why This Matters

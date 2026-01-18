@@ -161,13 +161,11 @@ dirEdges3D = DeleteDuplicates @ Flatten[
   1
 ];
 
-(* Build 3D proof graph with spring-electrical embedding *)
+(* Build 3D proof graph using Graph3D for proper 3D embedding *)
 vertices3D = Union[Flatten[hyper]];
+graph3D = Graph3D[dirEdges3D, GraphLayout -> "SpringElectricalEmbedding"];
 vertexCoords3D = Association @ Thread[
-  vertices3D -> GraphEmbedding[
-    Graph[dirEdges3D],
-    {"SpringElectricalEmbedding", "Dimension" -> 3}
-  ]
+  VertexList[graph3D] -> GraphEmbedding[graph3D]
 ];
 
 (* Create 3D graphics with spheres and tubes *)
@@ -245,11 +243,9 @@ Export[FileNameJoin[{outDir, modelKey <> "_term_dag.png"}], dagPlot];
 Print["Exported: ", modelKey <> "_term_dag.png"];
 
 (* 3D DAG visualization for the proof structure *)
+dagGraph3D = Graph3D[DeleteDuplicates[dirEdges], GraphLayout -> "SpringElectricalEmbedding"];
 dagCoords3D = Association @ Thread[
-  Union[Flatten[List @@@ dirEdges]] -> GraphEmbedding[
-    Graph[DeleteDuplicates[dirEdges]],
-    {"SpringElectricalEmbedding", "Dimension" -> 3}
-  ]
+  VertexList[dagGraph3D] -> GraphEmbedding[dagGraph3D]
 ];
 
 dagPlot3D = Graphics3D[{

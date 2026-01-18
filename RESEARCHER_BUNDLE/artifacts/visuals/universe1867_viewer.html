@@ -269,6 +269,58 @@
     .viz-grid-equal .panel {
       min-height: 450px;
     }
+
+    /* 2D Canvas for proof graph */
+    .canvas-2d {
+      width: 100%;
+      height: 100%;
+      min-height: 380px;
+      background: #050510;
+      border-radius: 4px;
+    }
+
+    /* Semantics section */
+    .semantics-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+    }
+    .semantics-section h3 {
+      font-size: 14px;
+      margin-bottom: 12px;
+      color: var(--lean);
+    }
+    .semantics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 800px) {
+      .semantics-grid { grid-template-columns: 1fr; }
+    }
+
+    /* Legend */
+    .legend {
+      display: flex;
+      gap: 16px;
+      padding: 8px 12px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 4px;
+      margin-bottom: 8px;
+      font-size: 10px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
   </style>
 </head>
 <body>
@@ -340,39 +392,22 @@
 
   <!-- LEAN SECTION -->
   <div class="section-header lean">
-    <h2 style="color: var(--lean);">Lean 4 Formalization</h2>
-    <span class="tag">Verified Proof</span>
+    <h2 style="color: var(--lean);">Lean 4 Proof Dependency Graph</h2>
+    <span class="tag">Verified Formalization</span>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#34d399;"></div> Structure</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#60a5fa;"></div> Definition</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#c084fc;"></div> Theorem</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#fbbf24;"></div> Root</div>
   </div>
 
   <div class="viz-grid-equal">
     <div class="panel">
-      <div class="panel-header">Parallel Rewriting Semantics</div>
-      <div class="panel-content">
-        <div class="code-block"><span class="comment">-- WolframModel parallel semantics in Lean 4</span>
-<span class="keyword">def</span> findAllMatches (g : <span class="type">Hypergraph</span>) : <span class="type">List Match</span> := ...
-<span class="keyword">def</span> selectNonOverlapping (m : <span class="type">List Match</span>) : <span class="type">List Match</span> := ...
-
-<span class="keyword">def</span> applyRule (e1 e2 : <span class="type">Hyperedge</span>) (fresh : <span class="type">Nat</span>) :
-    <span class="type">List Hyperedge</span> :=
-  <span class="keyword">let</span> a := e1.src; <span class="keyword">let</span> b := e1.tgt; <span class="keyword">let</span> c := e2.tgt
-  [⟨b,c⟩, ⟨b,c⟩, ⟨c,fresh⟩, ⟨a,c⟩]
-
-<span class="keyword">def</span> stepGeneration (g : <span class="type">Hypergraph</span>) : <span class="type">Hypergraph × Nat</span> := ...
-<span class="keyword">def</span> evolveGenerations (g : <span class="type">Hypergraph</span>) (n : <span class="type">Nat</span>) : ...</div>
-        <div class="theorem-box">
-          <h4>Verified Theorems (Computable Proofs)</h4>
-          <div class="code-block"><span class="keyword">theorem</span> initial_edge_count :
-    edgeCount initial = <span class="number">2</span> := <span class="keyword">rfl</span>
-
-<span class="keyword">theorem</span> rule_produces_four_edges :
-    (applyRule e1 e2 fresh).length = <span class="number">4</span> := <span class="keyword">rfl</span>
-
-<span class="keyword">theorem</span> self_loops_match :
-    (findAllMatches initial).length > <span class="number">0</span> := <span class="keyword">by</span> native_decide
-
-<span class="comment">-- #eval universe1867_gen7</span>
-<span class="comment">-- Result: (150 edges, 74 events, 75 vertices) ✓</span></div>
-        </div>
+      <div class="panel-header">2D Proof Structure</div>
+      <div class="panel-content no-padding">
+        <canvas class="canvas-2d" id="lean2d"></canvas>
       </div>
     </div>
     <div class="panel">
@@ -391,6 +426,48 @@
     </div>
   </div>
 
+  <!-- SEMANTICS SECTION (moved to bottom) -->
+  <div class="semantics-section">
+    <h3>Parallel Rewriting Semantics (Lean 4 Implementation)</h3>
+    <div class="semantics-grid">
+      <div>
+        <div class="code-block"><span class="comment">-- WolframModel parallel semantics in Lean 4</span>
+<span class="keyword">structure</span> <span class="type">Hyperedge</span> <span class="keyword">where</span>
+  src : <span class="type">Nat</span>
+  tgt : <span class="type">Nat</span>
+
+<span class="keyword">abbrev</span> <span class="type">Hypergraph</span> := <span class="type">List Hyperedge</span>
+
+<span class="keyword">def</span> findAllMatches (g : <span class="type">Hypergraph</span>) : <span class="type">List Match</span> := ...
+<span class="keyword">def</span> selectNonOverlapping (m : <span class="type">List Match</span>) : <span class="type">List Match</span> := ...
+
+<span class="keyword">def</span> applyRule (e1 e2 : <span class="type">Hyperedge</span>) (fresh : <span class="type">Nat</span>) :
+    <span class="type">List Hyperedge</span> :=
+  <span class="keyword">let</span> a := e1.src; <span class="keyword">let</span> b := e1.tgt; <span class="keyword">let</span> c := e2.tgt
+  [⟨b,c⟩, ⟨b,c⟩, ⟨c,fresh⟩, ⟨a,c⟩]
+
+<span class="keyword">def</span> stepGeneration (g : <span class="type">Hypergraph</span>) : <span class="type">Hypergraph × Nat</span> := ...
+<span class="keyword">def</span> evolveGenerations (g : <span class="type">Hypergraph</span>) (n : <span class="type">Nat</span>) : ...</div>
+      </div>
+      <div>
+        <div class="theorem-box">
+          <h4>Verified Theorems (Computable Proofs)</h4>
+          <div class="code-block"><span class="keyword">theorem</span> initial_edge_count :
+    edgeCount initial = <span class="number">2</span> := <span class="keyword">rfl</span>
+
+<span class="keyword">theorem</span> rule_produces_four_edges :
+    (applyRule e1 e2 fresh).length = <span class="number">4</span> := <span class="keyword">rfl</span>
+
+<span class="keyword">theorem</span> self_loops_match :
+    (findAllMatches initial).length > <span class="number">0</span> := <span class="keyword">by</span> native_decide
+
+<span class="comment">-- #eval universe1867_gen7</span>
+<span class="comment">-- Result: (150 edges, 74 events, 75 vertices) ✓</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="bridge-info">
     <p>
       Source: <a href="https://www.wolframphysics.org/universes/wm1867/" style="color: var(--accent);">wolframphysics.org/universes/wm1867</a>
@@ -401,6 +478,73 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script>
+    // Lean proof dependency graph structure
+    const proofNodes = [
+      // Structures (green)
+      { id: 'Hyperedge', kind: 'structure', label: 'Hyperedge' },
+      { id: 'Match', kind: 'structure', label: 'Match' },
+      // Definitions (blue)
+      { id: 'Hypergraph', kind: 'def', label: 'Hypergraph' },
+      { id: 'universe1867_initial', kind: 'def', label: 'initial' },
+      { id: 'maxVertex', kind: 'def', label: 'maxVertex' },
+      { id: 'findAllMatches', kind: 'def', label: 'findAllMatches' },
+      { id: 'applyRule', kind: 'def', label: 'applyRule' },
+      { id: 'matchesOverlap', kind: 'def', label: 'matchesOverlap' },
+      { id: 'selectNonOverlapping', kind: 'def', label: 'selectNonOverlapping' },
+      { id: 'stepGeneration', kind: 'def', label: 'stepGeneration' },
+      { id: 'evolveGenerations', kind: 'def', label: 'evolveGenerations' },
+      { id: 'evolveStates', kind: 'def', label: 'evolveStates' },
+      { id: 'universe1867_gen7', kind: 'def', label: 'gen7' },
+      { id: 'edgeCount', kind: 'def', label: 'edgeCount' },
+      { id: 'vertexCount', kind: 'def', label: 'vertexCount' },
+      // Theorems (purple)
+      { id: 'initial_edge_count', kind: 'theorem', label: 'initial_edge_count' },
+      { id: 'initial_vertex_count', kind: 'theorem', label: 'initial_vertex_count' },
+      { id: 'rule_produces_four_edges', kind: 'theorem', label: 'rule_produces_4' },
+      { id: 'self_loops_match', kind: 'theorem', label: 'self_loops_match' },
+    ];
+
+    const proofEdges = [
+      // Structure dependencies
+      ['Hyperedge', 'Hypergraph'],
+      ['Hyperedge', 'universe1867_initial'],
+      ['Hyperedge', 'applyRule'],
+      ['Match', 'findAllMatches'],
+      ['Match', 'matchesOverlap'],
+      // Definition dependencies
+      ['Hypergraph', 'universe1867_initial'],
+      ['Hypergraph', 'maxVertex'],
+      ['Hypergraph', 'findAllMatches'],
+      ['Hypergraph', 'stepGeneration'],
+      ['Hypergraph', 'edgeCount'],
+      ['Hypergraph', 'vertexCount'],
+      ['findAllMatches', 'selectNonOverlapping'],
+      ['matchesOverlap', 'selectNonOverlapping'],
+      ['maxVertex', 'stepGeneration'],
+      ['applyRule', 'stepGeneration'],
+      ['selectNonOverlapping', 'stepGeneration'],
+      ['stepGeneration', 'evolveGenerations'],
+      ['stepGeneration', 'evolveStates'],
+      ['evolveGenerations', 'universe1867_gen7'],
+      ['universe1867_initial', 'universe1867_gen7'],
+      // Theorem dependencies
+      ['edgeCount', 'initial_edge_count'],
+      ['universe1867_initial', 'initial_edge_count'],
+      ['vertexCount', 'initial_vertex_count'],
+      ['universe1867_initial', 'initial_vertex_count'],
+      ['applyRule', 'rule_produces_four_edges'],
+      ['findAllMatches', 'self_loops_match'],
+      ['universe1867_initial', 'self_loops_match'],
+    ];
+
+    // Node colors by kind
+    const nodeColors = {
+      structure: '#34d399',  // green
+      def: '#60a5fa',        // blue
+      theorem: '#c084fc',    // purple
+      root: '#fbbf24'        // yellow
+    };
+
     let edges = [];
 
     // Wolfram 3D
@@ -416,21 +560,21 @@
         const response = await fetch('universe1867_edges.json');
         edges = await response.json();
         initWolfram3D();
-        initLean3D();
       } catch (e) {
         console.error('Failed to load edges:', e);
         document.getElementById('wolfram3d').innerHTML = '<img src="universe1867_3d.png" style="width:100%;height:100%;object-fit:contain;">';
-        document.getElementById('lean3d').innerHTML = '<p style="padding:20px;color:#9ca3af;">Visualization requires edge data</p>';
       }
+      // Initialize Lean visualizations (don't need hypergraph data)
+      initLean2D();
+      initLean3D();
     }
 
-    // Force-directed layout (matches 2D spring-electrical embedding)
+    // Force-directed layout for hypergraph
     function forceDirectedLayout(edgeList, iterations = 100) {
       const vertices = new Set();
       edgeList.forEach(e => { vertices.add(e[0]); vertices.add(e[1]); });
       const vertexArray = Array.from(vertices).sort((a,b) => a-b);
 
-      // Initialize random positions
       const positions = {};
       vertexArray.forEach(v => {
         positions[v] = [
@@ -440,7 +584,6 @@
         ];
       });
 
-      // Build adjacency for attraction
       const neighbors = {};
       vertexArray.forEach(v => neighbors[v] = new Set());
       edgeList.forEach(([s, t]) => {
@@ -448,17 +591,12 @@
         neighbors[t].add(s);
       });
 
-      const k = 2.0;  // Optimal distance
-      const repulsion = 50;
-      const attraction = 0.1;
-      const damping = 0.9;
+      const k = 2.0, repulsion = 50, attraction = 0.1, damping = 0.9;
 
-      // Run simulation
       for (let iter = 0; iter < iterations; iter++) {
         const forces = {};
         vertexArray.forEach(v => forces[v] = [0, 0, 0]);
 
-        // Repulsion between all pairs
         for (let i = 0; i < vertexArray.length; i++) {
           for (let j = i + 1; j < vertexArray.length; j++) {
             const v1 = vertexArray[i], v2 = vertexArray[j];
@@ -472,7 +610,6 @@
           }
         }
 
-        // Attraction along edges
         edgeList.forEach(([s, t]) => {
           const p1 = positions[s], p2 = positions[t];
           const dx = p2[0] - p1[0], dy = p2[1] - p1[1], dz = p2[2] - p1[2];
@@ -483,7 +620,6 @@
           forces[t][0] -= fx; forces[t][1] -= fy; forces[t][2] -= fz;
         });
 
-        // Apply forces with damping
         const temp = 1 - iter / iterations;
         vertexArray.forEach(v => {
           positions[v][0] += forces[v][0] * temp * damping;
@@ -492,7 +628,6 @@
         });
       }
 
-      // Center and scale
       let cx = 0, cy = 0, cz = 0;
       vertexArray.forEach(v => { cx += positions[v][0]; cy += positions[v][1]; cz += positions[v][2]; });
       cx /= vertexArray.length; cy /= vertexArray.length; cz /= vertexArray.length;
@@ -514,6 +649,87 @@
       return { positions, vertexArray };
     }
 
+    // Force-directed layout for proof graph
+    function proofGraphLayout(nodes, edges, iterations = 150) {
+      const positions = {};
+      const idToIdx = {};
+      nodes.forEach((n, i) => {
+        idToIdx[n.id] = i;
+        // Initial layout: spread by kind (top to bottom: struct -> def -> theorem)
+        let yBase = 0;
+        if (n.kind === 'structure') yBase = 4;
+        else if (n.kind === 'def') yBase = 0;
+        else if (n.kind === 'theorem') yBase = -4;
+        positions[n.id] = [
+          (Math.random() - 0.5) * 8,
+          yBase + (Math.random() - 0.5) * 2,
+          (Math.random() - 0.5) * 8
+        ];
+      });
+
+      const k = 2.5, repulsion = 80, attraction = 0.08, damping = 0.85;
+
+      for (let iter = 0; iter < iterations; iter++) {
+        const forces = {};
+        nodes.forEach(n => forces[n.id] = [0, 0, 0]);
+
+        // Repulsion
+        for (let i = 0; i < nodes.length; i++) {
+          for (let j = i + 1; j < nodes.length; j++) {
+            const n1 = nodes[i].id, n2 = nodes[j].id;
+            const p1 = positions[n1], p2 = positions[n2];
+            const dx = p1[0] - p2[0], dy = p1[1] - p2[1], dz = p1[2] - p2[2];
+            const dist = Math.sqrt(dx*dx + dy*dy + dz*dz) + 0.01;
+            const force = repulsion / (dist * dist);
+            const fx = (dx / dist) * force, fy = (dy / dist) * force, fz = (dz / dist) * force;
+            forces[n1][0] += fx; forces[n1][1] += fy; forces[n1][2] += fz;
+            forces[n2][0] -= fx; forces[n2][1] -= fy; forces[n2][2] -= fz;
+          }
+        }
+
+        // Attraction along edges
+        edges.forEach(([s, t]) => {
+          if (!positions[s] || !positions[t]) return;
+          const p1 = positions[s], p2 = positions[t];
+          const dx = p2[0] - p1[0], dy = p2[1] - p1[1], dz = p2[2] - p1[2];
+          const dist = Math.sqrt(dx*dx + dy*dy + dz*dz) + 0.01;
+          const force = attraction * (dist - k);
+          const fx = (dx / dist) * force, fy = (dy / dist) * force, fz = (dz / dist) * force;
+          forces[s][0] += fx; forces[s][1] += fy; forces[s][2] += fz;
+          forces[t][0] -= fx; forces[t][1] -= fy; forces[t][2] -= fz;
+        });
+
+        const temp = 1 - iter / iterations;
+        nodes.forEach(n => {
+          positions[n.id][0] += forces[n.id][0] * temp * damping;
+          positions[n.id][1] += forces[n.id][1] * temp * damping;
+          positions[n.id][2] += forces[n.id][2] * temp * damping;
+        });
+      }
+
+      // Center and scale
+      let cx = 0, cy = 0, cz = 0;
+      nodes.forEach(n => { cx += positions[n.id][0]; cy += positions[n.id][1]; cz += positions[n.id][2]; });
+      cx /= nodes.length; cy /= nodes.length; cz /= nodes.length;
+
+      let maxDist = 0;
+      nodes.forEach(n => {
+        positions[n.id][0] -= cx; positions[n.id][1] -= cy; positions[n.id][2] -= cz;
+        const d = Math.sqrt(positions[n.id][0]**2 + positions[n.id][1]**2 + positions[n.id][2]**2);
+        if (d > maxDist) maxDist = d;
+      });
+
+      const scale = 5 / (maxDist || 1);
+      nodes.forEach(n => {
+        positions[n.id][0] *= scale;
+        positions[n.id][1] *= scale;
+        positions[n.id][2] *= scale;
+      });
+
+      return positions;
+    }
+
+    // WOLFRAM 3D
     function initWolfram3D() {
       const container = document.getElementById('wolfram3d');
       const width = container.clientWidth;
@@ -542,7 +758,6 @@
       createWolframGraph();
       animateWolfram();
 
-      // Handle resize
       window.addEventListener('resize', () => {
         const w = container.clientWidth, h = container.clientHeight || 400;
         wCamera.aspect = w / h;
@@ -553,11 +768,8 @@
 
     function createWolframGraph() {
       wGroup = new THREE.Group();
-
-      // Use force-directed layout (same as 2D)
       const { positions, vertexArray } = forceDirectedLayout(edges, 150);
 
-      // Edges (orange tubes)
       edges.forEach(([src, tgt]) => {
         const p1 = positions[src], p2 = positions[tgt];
         if (p1 && p2) {
@@ -575,7 +787,6 @@
         }
       });
 
-      // Vertices (cyan spheres)
       vertexArray.forEach(v => {
         const pos = positions[v];
         const geom = new THREE.SphereGeometry(0.15, 16, 16);
@@ -606,7 +817,94 @@
       wRenderer.render(wScene, wCamera);
     }
 
-    // LEAN 3D (same layout, different colors)
+    // LEAN 2D Canvas
+    function initLean2D() {
+      const canvas = document.getElementById('lean2d');
+      const ctx = canvas.getContext('2d');
+      const container = canvas.parentElement;
+
+      // Set canvas size
+      canvas.width = container.clientWidth || 400;
+      canvas.height = container.clientHeight || 380;
+
+      const positions = proofGraphLayout(proofNodes, proofEdges, 200);
+
+      // Convert 3D to 2D (use x and y, ignore z for 2D view)
+      const positions2D = {};
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      proofNodes.forEach(n => {
+        const [x, y, z] = positions[n.id];
+        positions2D[n.id] = [x, y];
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      });
+
+      // Scale to canvas
+      const padding = 60;
+      const scaleX = (canvas.width - 2 * padding) / (maxX - minX || 1);
+      const scaleY = (canvas.height - 2 * padding) / (maxY - minY || 1);
+      const scale = Math.min(scaleX, scaleY);
+
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+
+      function toCanvas(id) {
+        const [x, y] = positions2D[id];
+        return [
+          centerX + x * scale,
+          centerY - y * scale  // Flip Y so structures at top
+        ];
+      }
+
+      // Clear
+      ctx.fillStyle = '#050510';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw edges
+      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+      ctx.lineWidth = 1;
+      proofEdges.forEach(([s, t]) => {
+        const [x1, y1] = toCanvas(s);
+        const [x2, y2] = toCanvas(t);
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+      });
+
+      // Draw nodes
+      proofNodes.forEach(n => {
+        const [x, y] = toCanvas(n.id);
+        const color = nodeColors[n.kind];
+
+        // Node circle
+        ctx.beginPath();
+        ctx.arc(x, y, 12, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Label
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '9px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(n.label, x, y + 16);
+      });
+
+      // Handle resize
+      window.addEventListener('resize', () => {
+        canvas.width = container.clientWidth || 400;
+        canvas.height = container.clientHeight || 380;
+        initLean2D();  // Redraw
+      });
+    }
+
+    // LEAN 3D
     function initLean3D() {
       const container = document.getElementById('lean3d');
       const width = container.clientWidth;
@@ -632,10 +930,9 @@
       lDir.position.set(5, 10, 7);
       lScene.add(lDir);
 
-      createLeanGraph();
+      createLeanProofGraph();
       animateLean();
 
-      // Handle resize
       window.addEventListener('resize', () => {
         const w = container.clientWidth, h = container.clientHeight || 400;
         lCamera.aspect = w / h;
@@ -644,35 +941,35 @@
       });
     }
 
-    function createLeanGraph() {
+    function createLeanProofGraph() {
       lGroup = new THREE.Group();
 
-      // Use same force-directed layout
-      const { positions, vertexArray } = forceDirectedLayout(edges, 150);
+      const positions = proofGraphLayout(proofNodes, proofEdges, 200);
 
-      // Edges (blue tubes)
-      edges.forEach(([src, tgt]) => {
-        const p1 = positions[src], p2 = positions[tgt];
+      // Edges (white lines)
+      proofEdges.forEach(([s, t]) => {
+        const p1 = positions[s], p2 = positions[t];
         if (p1 && p2) {
           const path = new THREE.LineCurve3(
             new THREE.Vector3(...p1),
             new THREE.Vector3(...p2)
           );
-          const tube = new THREE.TubeGeometry(path, 1, 0.025, 6, false);
+          const tube = new THREE.TubeGeometry(path, 1, 0.02, 6, false);
           const mat = new THREE.MeshPhongMaterial({
-            color: 0x3b82f6,
+            color: 0xffffff,
             transparent: true,
-            opacity: 0.7
+            opacity: 0.3
           });
           lGroup.add(new THREE.Mesh(tube, mat));
         }
       });
 
-      // Vertices (blue-white spheres)
-      vertexArray.forEach(v => {
-        const pos = positions[v];
-        const geom = new THREE.SphereGeometry(0.15, 16, 16);
-        const mat = new THREE.MeshPhongMaterial({ color: 0x60a5fa, shininess: 50 });
+      // Nodes (colored spheres by kind)
+      proofNodes.forEach(n => {
+        const pos = positions[n.id];
+        const color = new THREE.Color(nodeColors[n.kind]);
+        const geom = new THREE.SphereGeometry(0.2, 16, 16);
+        const mat = new THREE.MeshPhongMaterial({ color: color, shininess: 50 });
         const mesh = new THREE.Mesh(geom, mat);
         mesh.position.set(...pos);
         lGroup.add(mesh);

@@ -135,7 +135,7 @@ Export a Lean 4 proof term as a Wolfram Physics hypergraph:
 
 <p align="center">
   <a href="https://abraxas1010.github.io/heyting-wolfram-proofs/RESEARCHER_BUNDLE/artifacts/visuals/universe1867_viewer.html">
-    <img src="RESEARCHER_BUNDLE/artifacts/visuals/universe1867_hypergraph.png" alt="Universe 1867" width="400"/>
+    <img src="RESEARCHER_BUNDLE/artifacts/visuals/universe1867_graph.png" alt="Universe 1867" width="400"/>
   </a>
 </p>
 

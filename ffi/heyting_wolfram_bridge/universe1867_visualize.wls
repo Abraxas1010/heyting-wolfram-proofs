@@ -62,18 +62,21 @@ If[hasSetReplace,
   Export[FileNameJoin[{outDir, "universe1867_hypergraph.png"}], plot];
   Print["Exported: universe1867_hypergraph.png"];
 
-  (* Export evolution animation frames with proper styling *)
+  (* Export evolution animation frames using Graph (cleaner look) *)
   Do[
-    frame = WolframModelPlot[statesList[[i]],
-      VertexSize -> 0.6,
-      "HyperedgeRendering" -> "Subgraphs",
-      EdgeStyle -> Directive[Opacity[0.8], Thickness[0.004]],
-      VertexStyle -> Directive[Cyan, EdgeForm[{Thin, White}]],
+    frameEdges = DirectedEdge @@@ statesList[[i]];
+    frameGraph = Graph[frameEdges,
+      VertexStyle -> Directive[RGBColor[0, 0.8, 0.8], EdgeForm[{Thin, White}]],
+      VertexSize -> 0.4,
+      VertexLabels -> If[Length[statesList[[i]]] <= 20, Placed["Name", Center], None],
+      VertexLabelStyle -> Directive[8, White],
+      EdgeStyle -> Directive[Opacity[0.6], Thickness[0.003], RGBColor[1, 0.5, 0.2]],
       Background -> RGBColor[0.05, 0.05, 0.05],
+      GraphLayout -> "SpringElectricalEmbedding",
       ImageSize -> 400,
-      PlotRangePadding -> Scaled[0.15]
+      ImagePadding -> 15
     ];
-    Export[FileNameJoin[{outDir, "frame_" <> ToString[i-1] <> ".png"}], frame];
+    Export[FileNameJoin[{outDir, "frame_" <> ToString[i-1] <> ".png"}], frameGraph];
   , {i, Min[Length[statesList], 8]}];
   Print["Exported evolution frames"];
 

@@ -49,9 +49,7 @@
       border: 1px solid var(--border);
       border-radius: 8px;
     }
-    .stat {
-      text-align: center;
-    }
+    .stat { text-align: center; }
     .stat-value {
       font-size: 28px;
       font-weight: 700;
@@ -74,10 +72,7 @@
     }
     .section-header.wolfram { border-color: var(--wolfram); }
     .section-header.lean { border-color: var(--lean); }
-    .section-header h2 {
-      font-size: 18px;
-      font-weight: 600;
-    }
+    .section-header h2 { font-size: 18px; font-weight: 600; }
     .section-header .tag {
       font-size: 10px;
       padding: 3px 10px;
@@ -100,6 +95,8 @@
       border: 1px solid var(--border);
       border-radius: 8px;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
     .panel-header {
       padding: 10px 14px;
@@ -109,13 +106,22 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-shrink: 0;
     }
     .panel-content {
       padding: 12px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
     }
     .panel-content img {
       width: 100%;
       border-radius: 4px;
+      flex: 1;
+      object-fit: contain;
+    }
+    .panel-content.no-padding {
+      padding: 0;
     }
 
     .code-block {
@@ -153,15 +159,18 @@
       margin-top: 4px;
     }
 
-    /* 3D Viewer */
+    /* 3D Viewer - fills container */
     .viewer-3d {
       width: 100%;
-      height: 350px;
+      height: 100%;
+      min-height: 400px;
       border-radius: 4px;
       position: relative;
       background: #050505;
     }
     .viewer-3d canvas {
+      width: 100% !important;
+      height: 100% !important;
       border-radius: 4px;
     }
     .viewer-controls {
@@ -170,6 +179,7 @@
       right: 10px;
       display: flex;
       gap: 6px;
+      z-index: 10;
     }
     .viewer-controls button {
       padding: 6px 10px;
@@ -180,12 +190,8 @@
       font-size: 10px;
       cursor: pointer;
     }
-    .viewer-controls button:hover {
-      background: rgba(96,165,250,0.3);
-    }
-    .viewer-controls button.active {
-      background: rgba(96,165,250,0.5);
-    }
+    .viewer-controls button:hover { background: rgba(96,165,250,0.3); }
+    .viewer-controls button.active { background: rgba(96,165,250,0.5); }
 
     .evolution-strip {
       background: var(--card);
@@ -249,14 +255,19 @@
       padding: 16px;
       border-top: 1px solid var(--border);
     }
-    .bridge-info p {
-      font-size: 11px;
-      color: var(--dim);
+    .bridge-info p { font-size: 11px; color: var(--dim); }
+    .bridge-info code { background: #111; padding: 2px 6px; border-radius: 3px; }
+
+    /* Make panels equal height */
+    .viz-grid-equal {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+      align-items: stretch;
     }
-    .bridge-info code {
-      background: #111;
-      padding: 2px 6px;
-      border-radius: 3px;
+    .viz-grid-equal .panel {
+      min-height: 450px;
     }
   </style>
 </head>
@@ -273,22 +284,10 @@
   </p>
 
   <div class="stats-bar">
-    <div class="stat">
-      <div class="stat-value">7</div>
-      <div class="stat-label">Generations</div>
-    </div>
-    <div class="stat">
-      <div class="stat-value">74</div>
-      <div class="stat-label">Events</div>
-    </div>
-    <div class="stat">
-      <div class="stat-value">150</div>
-      <div class="stat-label">Final Edges</div>
-    </div>
-    <div class="stat">
-      <div class="stat-value">75</div>
-      <div class="stat-label">Vertices</div>
-    </div>
+    <div class="stat"><div class="stat-value">7</div><div class="stat-label">Generations</div></div>
+    <div class="stat"><div class="stat-value">74</div><div class="stat-label">Events</div></div>
+    <div class="stat"><div class="stat-value">150</div><div class="stat-label">Final Edges</div></div>
+    <div class="stat"><div class="stat-value">75</div><div class="stat-label">Vertices</div></div>
   </div>
 
   <!-- WOLFRAM SECTION -->
@@ -302,7 +301,7 @@
     <div class="label">Universe 1867 Rewriting Rule · Initial: {{1,1},{1,1}}</div>
   </div>
 
-  <div class="viz-grid">
+  <div class="viz-grid-equal">
     <div class="panel">
       <div class="panel-header">2D Graph View</div>
       <div class="panel-content">
@@ -314,7 +313,7 @@
         Interactive 3D View
         <span style="font-size:10px;color:var(--dim);">drag to rotate</span>
       </div>
-      <div class="panel-content" style="padding:0;">
+      <div class="panel-content no-padding">
         <div class="viewer-3d" id="wolfram3d">
           <div class="viewer-controls">
             <button onclick="resetWolfram3D()">Reset</button>
@@ -328,38 +327,14 @@
   <div class="evolution-strip">
     <h3>Evolution: 7 Generations (74 Events)</h3>
     <div class="frames">
-      <div class="frame">
-        <img src="frame_0.png" alt="Gen 0">
-        <div class="frame-label">Gen 0: 2 edges</div>
-      </div>
-      <div class="frame">
-        <img src="frame_1.png" alt="Gen 1">
-        <div class="frame-label">Gen 1: 4</div>
-      </div>
-      <div class="frame">
-        <img src="frame_2.png" alt="Gen 2">
-        <div class="frame-label">Gen 2: 8</div>
-      </div>
-      <div class="frame">
-        <img src="frame_3.png" alt="Gen 3">
-        <div class="frame-label">Gen 3: 14</div>
-      </div>
-      <div class="frame">
-        <img src="frame_4.png" alt="Gen 4">
-        <div class="frame-label">Gen 4: 26</div>
-      </div>
-      <div class="frame">
-        <img src="frame_5.png" alt="Gen 5">
-        <div class="frame-label">Gen 5: 44</div>
-      </div>
-      <div class="frame">
-        <img src="frame_6.png" alt="Gen 6">
-        <div class="frame-label">Gen 6: 80</div>
-      </div>
-      <div class="frame">
-        <img src="frame_7.png" alt="Gen 7">
-        <div class="frame-label">Gen 7: 150</div>
-      </div>
+      <div class="frame"><img src="frame_0.png" alt="Gen 0"><div class="frame-label">Gen 0: 2 edges</div></div>
+      <div class="frame"><img src="frame_1.png" alt="Gen 1"><div class="frame-label">Gen 1: 4</div></div>
+      <div class="frame"><img src="frame_2.png" alt="Gen 2"><div class="frame-label">Gen 2: 8</div></div>
+      <div class="frame"><img src="frame_3.png" alt="Gen 3"><div class="frame-label">Gen 3: 14</div></div>
+      <div class="frame"><img src="frame_4.png" alt="Gen 4"><div class="frame-label">Gen 4: 26</div></div>
+      <div class="frame"><img src="frame_5.png" alt="Gen 5"><div class="frame-label">Gen 5: 44</div></div>
+      <div class="frame"><img src="frame_6.png" alt="Gen 6"><div class="frame-label">Gen 6: 80</div></div>
+      <div class="frame"><img src="frame_7.png" alt="Gen 7"><div class="frame-label">Gen 7: 150</div></div>
     </div>
   </div>
 
@@ -369,7 +344,7 @@
     <span class="tag">Verified Proof</span>
   </div>
 
-  <div class="viz-grid">
+  <div class="viz-grid-equal">
     <div class="panel">
       <div class="panel-header">Parallel Rewriting Semantics</div>
       <div class="panel-content">
@@ -384,7 +359,6 @@
 
 <span class="keyword">def</span> stepGeneration (g : <span class="type">Hypergraph</span>) : <span class="type">Hypergraph × Nat</span> := ...
 <span class="keyword">def</span> evolveGenerations (g : <span class="type">Hypergraph</span>) (n : <span class="type">Nat</span>) : ...</div>
-
         <div class="theorem-box">
           <h4>Verified Theorems (Computable Proofs)</h4>
           <div class="code-block"><span class="keyword">theorem</span> initial_edge_count :
@@ -406,7 +380,7 @@
         Interactive 3D Proof Structure
         <span style="font-size:10px;color:var(--dim);">drag to rotate</span>
       </div>
-      <div class="panel-content" style="padding:0;">
+      <div class="panel-content no-padding">
         <div class="viewer-3d" id="lean3d">
           <div class="viewer-controls">
             <button onclick="resetLean3D()">Reset</button>
@@ -421,21 +395,19 @@
     <p>
       Source: <a href="https://www.wolframphysics.org/universes/wm1867/" style="color: var(--accent);">wolframphysics.org/universes/wm1867</a>
       · Lean: <code>HeytingLean.WolframPhysics.Universe1867</code>
-      · Binary: <code>universe1867_edges.json</code>
     </p>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script>
-    // Edge data loaded dynamically
     let edges = [];
 
-    // Wolfram 3D viewer
+    // Wolfram 3D
     let wScene, wCamera, wRenderer, wControls, wGroup;
     let wSpinning = true;
 
-    // Lean 3D viewer
+    // Lean 3D
     let lScene, lCamera, lRenderer, lControls, lGroup;
     let lSpinning = true;
 
@@ -452,16 +424,106 @@
       }
     }
 
+    // Force-directed layout (matches 2D spring-electrical embedding)
+    function forceDirectedLayout(edgeList, iterations = 100) {
+      const vertices = new Set();
+      edgeList.forEach(e => { vertices.add(e[0]); vertices.add(e[1]); });
+      const vertexArray = Array.from(vertices).sort((a,b) => a-b);
+
+      // Initialize random positions
+      const positions = {};
+      vertexArray.forEach(v => {
+        positions[v] = [
+          (Math.random() - 0.5) * 10,
+          (Math.random() - 0.5) * 10,
+          (Math.random() - 0.5) * 10
+        ];
+      });
+
+      // Build adjacency for attraction
+      const neighbors = {};
+      vertexArray.forEach(v => neighbors[v] = new Set());
+      edgeList.forEach(([s, t]) => {
+        neighbors[s].add(t);
+        neighbors[t].add(s);
+      });
+
+      const k = 2.0;  // Optimal distance
+      const repulsion = 50;
+      const attraction = 0.1;
+      const damping = 0.9;
+
+      // Run simulation
+      for (let iter = 0; iter < iterations; iter++) {
+        const forces = {};
+        vertexArray.forEach(v => forces[v] = [0, 0, 0]);
+
+        // Repulsion between all pairs
+        for (let i = 0; i < vertexArray.length; i++) {
+          for (let j = i + 1; j < vertexArray.length; j++) {
+            const v1 = vertexArray[i], v2 = vertexArray[j];
+            const p1 = positions[v1], p2 = positions[v2];
+            const dx = p1[0] - p2[0], dy = p1[1] - p2[1], dz = p1[2] - p2[2];
+            const dist = Math.sqrt(dx*dx + dy*dy + dz*dz) + 0.01;
+            const force = repulsion / (dist * dist);
+            const fx = (dx / dist) * force, fy = (dy / dist) * force, fz = (dz / dist) * force;
+            forces[v1][0] += fx; forces[v1][1] += fy; forces[v1][2] += fz;
+            forces[v2][0] -= fx; forces[v2][1] -= fy; forces[v2][2] -= fz;
+          }
+        }
+
+        // Attraction along edges
+        edgeList.forEach(([s, t]) => {
+          const p1 = positions[s], p2 = positions[t];
+          const dx = p2[0] - p1[0], dy = p2[1] - p1[1], dz = p2[2] - p1[2];
+          const dist = Math.sqrt(dx*dx + dy*dy + dz*dz) + 0.01;
+          const force = attraction * (dist - k);
+          const fx = (dx / dist) * force, fy = (dy / dist) * force, fz = (dz / dist) * force;
+          forces[s][0] += fx; forces[s][1] += fy; forces[s][2] += fz;
+          forces[t][0] -= fx; forces[t][1] -= fy; forces[t][2] -= fz;
+        });
+
+        // Apply forces with damping
+        const temp = 1 - iter / iterations;
+        vertexArray.forEach(v => {
+          positions[v][0] += forces[v][0] * temp * damping;
+          positions[v][1] += forces[v][1] * temp * damping;
+          positions[v][2] += forces[v][2] * temp * damping;
+        });
+      }
+
+      // Center and scale
+      let cx = 0, cy = 0, cz = 0;
+      vertexArray.forEach(v => { cx += positions[v][0]; cy += positions[v][1]; cz += positions[v][2]; });
+      cx /= vertexArray.length; cy /= vertexArray.length; cz /= vertexArray.length;
+
+      let maxDist = 0;
+      vertexArray.forEach(v => {
+        positions[v][0] -= cx; positions[v][1] -= cy; positions[v][2] -= cz;
+        const d = Math.sqrt(positions[v][0]**2 + positions[v][1]**2 + positions[v][2]**2);
+        if (d > maxDist) maxDist = d;
+      });
+
+      const scale = 5 / maxDist;
+      vertexArray.forEach(v => {
+        positions[v][0] *= scale;
+        positions[v][1] *= scale;
+        positions[v][2] *= scale;
+      });
+
+      return { positions, vertexArray };
+    }
+
     function initWolfram3D() {
       const container = document.getElementById('wolfram3d');
       const width = container.clientWidth;
-      const height = 350;
+      const height = container.clientHeight || 400;
 
       wScene = new THREE.Scene();
       wScene.background = new THREE.Color(0x050505);
 
       wCamera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
-      wCamera.position.set(8, 6, 10);
+      wCamera.position.set(12, 9, 12);
 
       wRenderer = new THREE.WebGLRenderer({ antialias: true });
       wRenderer.setSize(width, height);
@@ -472,49 +534,42 @@
       wControls.enableDamping = true;
       wControls.dampingFactor = 0.05;
 
-      wScene.add(new THREE.AmbientLight(0xffffff, 0.5));
+      wScene.add(new THREE.AmbientLight(0xffffff, 0.6));
       const wDir = new THREE.DirectionalLight(0xffffff, 0.8);
       wDir.position.set(5, 10, 7);
       wScene.add(wDir);
 
       createWolframGraph();
       animateWolfram();
+
+      // Handle resize
+      window.addEventListener('resize', () => {
+        const w = container.clientWidth, h = container.clientHeight || 400;
+        wCamera.aspect = w / h;
+        wCamera.updateProjectionMatrix();
+        wRenderer.setSize(w, h);
+      });
     }
 
     function createWolframGraph() {
       wGroup = new THREE.Group();
 
-      const vertices = new Set();
-      edges.forEach(e => { vertices.add(e[0]); vertices.add(e[1]); });
-      const vertexArray = Array.from(vertices).sort((a,b) => a-b);
-
-      // Spherical layout
-      const positions = {};
-      vertexArray.forEach((v, i) => {
-        const phi = Math.acos(-1 + (2 * i) / vertexArray.length);
-        const theta = Math.sqrt(vertexArray.length * Math.PI) * phi;
-        const r = 5;
-        positions[v] = [
-          r * Math.cos(theta) * Math.sin(phi),
-          r * Math.sin(theta) * Math.sin(phi),
-          r * Math.cos(phi)
-        ];
-      });
+      // Use force-directed layout (same as 2D)
+      const { positions, vertexArray } = forceDirectedLayout(edges, 150);
 
       // Edges (orange tubes)
       edges.forEach(([src, tgt]) => {
-        const p1 = positions[src];
-        const p2 = positions[tgt];
+        const p1 = positions[src], p2 = positions[tgt];
         if (p1 && p2) {
           const path = new THREE.LineCurve3(
             new THREE.Vector3(...p1),
             new THREE.Vector3(...p2)
           );
-          const tube = new THREE.TubeGeometry(path, 1, 0.02, 6, false);
+          const tube = new THREE.TubeGeometry(path, 1, 0.025, 6, false);
           const mat = new THREE.MeshPhongMaterial({
             color: 0xff6633,
             transparent: true,
-            opacity: 0.6
+            opacity: 0.7
           });
           wGroup.add(new THREE.Mesh(tube, mat));
         }
@@ -523,8 +578,8 @@
       // Vertices (cyan spheres)
       vertexArray.forEach(v => {
         const pos = positions[v];
-        const geom = new THREE.SphereGeometry(0.12, 12, 12);
-        const mat = new THREE.MeshPhongMaterial({ color: 0x00cccc, shininess: 30 });
+        const geom = new THREE.SphereGeometry(0.15, 16, 16);
+        const mat = new THREE.MeshPhongMaterial({ color: 0x00cccc, shininess: 50 });
         const mesh = new THREE.Mesh(geom, mat);
         mesh.position.set(...pos);
         wGroup.add(mesh);
@@ -534,7 +589,7 @@
     }
 
     function resetWolfram3D() {
-      wCamera.position.set(8, 6, 10);
+      wCamera.position.set(12, 9, 12);
       wControls.target.set(0, 0, 0);
       wControls.update();
     }
@@ -546,24 +601,22 @@
 
     function animateWolfram() {
       requestAnimationFrame(animateWolfram);
-      if (wSpinning && wGroup) {
-        wGroup.rotation.y += 0.005;
-      }
+      if (wSpinning && wGroup) wGroup.rotation.y += 0.004;
       wControls.update();
       wRenderer.render(wScene, wCamera);
     }
 
-    // LEAN 3D VIEWER (Proof Term DAG structure)
+    // LEAN 3D (same layout, different colors)
     function initLean3D() {
       const container = document.getElementById('lean3d');
       const width = container.clientWidth;
-      const height = 350;
+      const height = container.clientHeight || 400;
 
       lScene = new THREE.Scene();
       lScene.background = new THREE.Color(0x050510);
 
       lCamera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
-      lCamera.position.set(8, 6, 10);
+      lCamera.position.set(12, 9, 12);
 
       lRenderer = new THREE.WebGLRenderer({ antialias: true });
       lRenderer.setSize(width, height);
@@ -574,64 +627,52 @@
       lControls.enableDamping = true;
       lControls.dampingFactor = 0.05;
 
-      lScene.add(new THREE.AmbientLight(0xffffff, 0.5));
+      lScene.add(new THREE.AmbientLight(0xffffff, 0.6));
       const lDir = new THREE.DirectionalLight(0xffffff, 0.8);
       lDir.position.set(5, 10, 7);
       lScene.add(lDir);
 
       createLeanGraph();
       animateLean();
+
+      // Handle resize
+      window.addEventListener('resize', () => {
+        const w = container.clientWidth, h = container.clientHeight || 400;
+        lCamera.aspect = w / h;
+        lCamera.updateProjectionMatrix();
+        lRenderer.setSize(w, h);
+      });
     }
 
     function createLeanGraph() {
       lGroup = new THREE.Group();
 
-      // Create proof term DAG structure (layered tree)
-      // Simulate the Lean proof structure with depth-based layout
-      const vertices = new Set();
-      edges.forEach(e => { vertices.add(e[0]); vertices.add(e[1]); });
-      const vertexArray = Array.from(vertices).sort((a,b) => a-b);
+      // Use same force-directed layout
+      const { positions, vertexArray } = forceDirectedLayout(edges, 150);
 
-      // Layered layout (represents proof term depth)
-      const positions = {};
-      const maxV = Math.max(...vertexArray);
-      vertexArray.forEach((v, i) => {
-        const layer = Math.floor(Math.log2(v + 1));
-        const angle = (i / vertexArray.length) * Math.PI * 2;
-        const r = 2 + layer * 0.8;
-        positions[v] = [
-          r * Math.cos(angle),
-          (layer - 3) * 1.2,  // Depth determines Y
-          r * Math.sin(angle)
-        ];
-      });
-
-      // Edges (blue tubes for Lean)
+      // Edges (blue tubes)
       edges.forEach(([src, tgt]) => {
-        const p1 = positions[src];
-        const p2 = positions[tgt];
+        const p1 = positions[src], p2 = positions[tgt];
         if (p1 && p2) {
           const path = new THREE.LineCurve3(
             new THREE.Vector3(...p1),
             new THREE.Vector3(...p2)
           );
-          const tube = new THREE.TubeGeometry(path, 1, 0.015, 6, false);
+          const tube = new THREE.TubeGeometry(path, 1, 0.025, 6, false);
           const mat = new THREE.MeshPhongMaterial({
             color: 0x3b82f6,
             transparent: true,
-            opacity: 0.5
+            opacity: 0.7
           });
           lGroup.add(new THREE.Mesh(tube, mat));
         }
       });
 
-      // Vertices (blue-white gradient spheres)
+      // Vertices (blue-white spheres)
       vertexArray.forEach(v => {
         const pos = positions[v];
-        const layer = Math.floor(Math.log2(v + 1));
-        const geom = new THREE.SphereGeometry(0.1, 12, 12);
-        const color = new THREE.Color().setHSL(0.6, 0.7, 0.5 + layer * 0.05);
-        const mat = new THREE.MeshPhongMaterial({ color: color, shininess: 30 });
+        const geom = new THREE.SphereGeometry(0.15, 16, 16);
+        const mat = new THREE.MeshPhongMaterial({ color: 0x60a5fa, shininess: 50 });
         const mesh = new THREE.Mesh(geom, mat);
         mesh.position.set(...pos);
         lGroup.add(mesh);
@@ -641,7 +682,7 @@
     }
 
     function resetLean3D() {
-      lCamera.position.set(8, 6, 10);
+      lCamera.position.set(12, 9, 12);
       lControls.target.set(0, 0, 0);
       lControls.update();
     }
@@ -653,14 +694,11 @@
 
     function animateLean() {
       requestAnimationFrame(animateLean);
-      if (lSpinning && lGroup) {
-        lGroup.rotation.y += 0.005;
-      }
+      if (lSpinning && lGroup) lGroup.rotation.y += 0.004;
       lControls.update();
       lRenderer.render(lScene, lCamera);
     }
 
-    // Initialize on load
     window.addEventListener('load', loadData);
   </script>
 </body>

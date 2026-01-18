@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wolfram ↔ Lean Proof Bridge Viewer</title>
+  <style>
+    :root {
+      --bg: #000000;
+      --card: #0a0a0a;
+      --border: rgba(255,255,255,0.1);
+      --text: #fafafa;
+      --dim: #9ca3af;
+      --wolfram-orange: #f59e0b;
+      --wolfram-red: #e8505b;
+      --lean-blue: #3b82f6;
+      --lean-purple: #8b5cf6;
+      --bridge-green: #10b981;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: ui-monospace, 'SF Mono', Monaco, 'Cascadia Code', monospace;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0,0,0,0.9);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo img { height: 36px; }
+    .logo span { font-size: 14px; color: var(--dim); }
+    h1 {
+      font-size: 18px;
+      background: linear-gradient(90deg, var(--wolfram-orange), var(--bridge-green), var(--lean-blue));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .controls {
+      display: flex;
+      gap: 12px;
+    }
+    .btn {
+      padding: 8px 16px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+    .btn:hover { border-color: var(--bridge-green); }
+    .btn.active { border-color: var(--bridge-green); background: rgba(16,185,129,0.1); }
+
+    .main-container {
+      display: flex;
+      height: calc(100vh - 70px);
+    }
+    .panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border);
+      position: relative;
+    }
+    .panel:last-child { border-right: none; }
+    .panel-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .panel-title {
+      font-size: 14px;
+      font-weight: bold;
+    }
+    .wolfram-title { color: var(--wolfram-orange); }
+    .lean-title { color: var(--lean-blue); }
+    .bridge-panel {
+      flex: 0 0 120px;
+      background: rgba(16,185,129,0.05);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-right: 1px solid var(--border);
+    }
+    .bridge-label {
+      color: var(--bridge-green);
+      font-size: 12px;
+      font-weight: bold;
+      text-align: center;
+    }
+    .bridge-status {
+      margin-top: 8px;
+      padding: 6px 12px;
+      background: rgba(16,185,129,0.2);
+      border-radius: 12px;
+      font-size: 10px;
+      color: var(--bridge-green);
+    }
+    .canvas-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+    svg.graph {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Node styles */
+    .wolfram-node {
+      cursor: pointer;
+      transition: filter 0.2s;
+    }
+    .wolfram-node:hover { filter: brightness(1.3); }
+    .lean-node {
+      cursor: pointer;
+      transition: filter 0.2s, stroke-width 0.2s;
+    }
+    .lean-node:hover { filter: brightness(1.2); }
+    .lean-node:hover rect,
+    .lean-node:hover ellipse,
+    .lean-node:hover polygon { stroke-width: 3; }
+
+    .edge { stroke-linecap: round; stroke-linejoin: round; }
+    .hyperedge { fill: none; }
+
+    /* Bridge lines */
+    @keyframes dash-flow {
+      0% { stroke-dashoffset: 40; }
+      100% { stroke-dashoffset: 0; }
+    }
+    .bridge-line {
+      animation: dash-flow 2s linear infinite;
+      stroke-dasharray: 10,5;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.6; r: 6; }
+      50% { opacity: 1; r: 8; }
+    }
+    .bridge-endpoint {
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    /* Info panel */
+    .info-panel {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      right: 16px;
+      background: rgba(10,10,10,0.95);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 11px;
+      max-height: 150px;
+      overflow-y: auto;
+      display: none;
+    }
+    .info-panel.visible { display: block; }
+    .info-panel h3 {
+      font-size: 12px;
+      margin-bottom: 8px;
+      color: var(--dim);
+    }
+    .info-panel .name { color: var(--text); font-weight: bold; }
+    .info-panel .type { color: var(--dim); margin-left: 8px; }
+    .info-panel pre {
+      background: rgba(255,255,255,0.05);
+      padding: 8px;
+      border-radius: 4px;
+      margin-top: 8px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      font-size: 10px;
+    }
+
+    /* Legend */
+    .legend {
+      position: absolute;
+      top: 60px;
+      right: 16px;
+      background: rgba(10,10,10,0.9);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      font-size: 10px;
+    }
+    .legend h4 {
+      margin-bottom: 8px;
+      color: var(--dim);
+      font-size: 11px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    .legend-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+    }
+
+    /* Filters (glow effects) */
+    .glow-filter { filter: url(#glow); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <img src="../../../assets/Apoth3osis.webp" alt="Apoth3osis">
+      <span>HeytingLean</span>
+    </div>
+    <h1>Wolfram Physics ↔ Lean 4 Proof Bridge</h1>
+    <div class="controls">
+      <button class="btn active" id="btn-bridge">Show Bridge</button>
+      <button class="btn" id="btn-animate">Animate</button>
+      <button class="btn" id="btn-reset">Reset View</button>
+    </div>
+  </header>
+
+  <div class="main-container">
+    <!-- Wolfram Panel -->
+    <div class="panel" id="wolfram-panel">
+      <div class="panel-header">
+        <span class="panel-title wolfram-title">Hypergraph (Wolfram Physics)</span>
+        <span style="color:var(--dim);font-size:11px;">5 hyperedges, 12 vertices</span>
+      </div>
+      <div class="canvas-container">
+        <svg class="graph" id="wolfram-svg" viewBox="0 0 400 400">
+          <defs>
+            <filter id="glow-w" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="3" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <g id="wolfram-edges">
+            <!-- Hyperedge 1 -->
+            <path class="hyperedge" d="M 60,80 Q 120,50 160,100 Q 100,130 60,80" stroke="#e8505b" stroke-width="3" filter="url(#glow-w)"/>
+            <!-- Hyperedge 2 -->
+            <path class="hyperedge" d="M 80,200 Q 150,170 200,220 Q 140,260 80,200" stroke="#f7c244" stroke-width="3" filter="url(#glow-w)"/>
+            <!-- Hyperedge 3 -->
+            <path class="hyperedge" d="M 200,100 Q 280,80 320,140 Q 260,180 200,100" stroke="#ff6b35" stroke-width="3" filter="url(#glow-w)"/>
+            <!-- Hyperedge 4 -->
+            <path class="hyperedge" d="M 240,240 Q 300,220 340,280 Q 280,320 240,240" stroke="#f59e0b" stroke-width="3" filter="url(#glow-w)"/>
+            <!-- Hyperedge 5 -->
+            <path class="hyperedge" d="M 100,320 Q 180,290 220,350" stroke="#ff9f1c" stroke-width="2" filter="url(#glow-w)"/>
+          </g>
+          <g id="wolfram-nodes">
+            <circle class="wolfram-node" data-id="w0" cx="60" cy="80" r="12" fill="#e8505b" filter="url(#glow-w)"/>
+            <circle class="wolfram-node" data-id="w1" cx="160" cy="100" r="12" fill="#e8505b" filter="url(#glow-w)"/>
+            <circle class="wolfram-node" data-id="w2" cx="120" cy="50" r="10" fill="#ff6b35" filter="url(#glow-w)"/>
+            <circle class="wolfram-node" data-id="w3" cx="80" cy="200" r="12" fill="#f7c244" filter="url(#glow-w)"/>
+            <circle class="wolfram-node" data-id="w4" cx="200" cy="220" r="14" fill="#f7c244" filter="url(#glow-w)"/>
+            <circle class="wolfram-node" data-id="w5" cx="140" cy="260" r="10" fill="#ff9f1c" filter="url(#glow-w)"/>
+            <circle class="wolfram-node" data-id="w6" cx="200" cy="100" r="11" fill="#ff6b35" filter="url(#glow-w)"/>
+            <circle class="wolfram-node" data-id="w7" cx="320" cy="140" r="14" fill="#e8505b" filter="url(#glow-w)"/>
+            <circle class="wolfram-node" data-id="w8" cx="260" cy="180" r="10" fill="#ff9f1c" filter="url(#glow-w)"/>
+            <circle class="wolfram-node" data-id="w9" cx="240" cy="240" r="12" fill="#f59e0b" filter="url(#glow-w)"/>
+            <circle class="wolfram-node" data-id="w10" cx="340" cy="280" r="11" fill="#f59e0b" filter="url(#glow-w)"/>
+            <circle class="wolfram-node" data-id="w11" cx="100" cy="320" r="10" fill="#ff9f1c" filter="url(#glow-w)"/>
+          </g>
+        </svg>
+        <div class="legend">
+          <h4>Wolfram Hyperedges</h4>
+          <div class="legend-item"><div class="legend-color" style="background:#e8505b"></div>3-ary edge</div>
+          <div class="legend-item"><div class="legend-color" style="background:#f7c244"></div>3-ary edge</div>
+          <div class="legend-item"><div class="legend-color" style="background:#ff6b35"></div>4-ary edge</div>
+          <div class="legend-item"><div class="legend-color" style="background:#f59e0b"></div>3-ary edge</div>
+        </div>
+        <div class="info-panel" id="wolfram-info">
+          <h3>Selected Node</h3>
+          <div><span class="name">-</span><span class="type">-</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bridge Panel -->
+    <div class="bridge-panel">
+      <div class="bridge-label">BIDIRECTIONAL<br>WITNESS<br>BRIDGE</div>
+      <div class="bridge-status">✓ LOSSLESS</div>
+      <svg width="80" height="200" style="margin-top:16px;">
+        <defs>
+          <linearGradient id="bridge-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#f59e0b"/>
+            <stop offset="50%" style="stop-color:#10b981"/>
+            <stop offset="100%" style="stop-color:#3b82f6"/>
+          </linearGradient>
+          <filter id="bridge-glow" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation="4" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <path class="bridge-line" d="M 20,20 C 60,60 20,140 60,180" stroke="url(#bridge-grad)" stroke-width="3" fill="none" filter="url(#bridge-glow)"/>
+        <path class="bridge-line" d="M 60,30 C 20,80 60,120 20,170" stroke="url(#bridge-grad)" stroke-width="2" fill="none" filter="url(#bridge-glow)" style="animation-delay:-1s;"/>
+        <circle class="bridge-endpoint" cx="20" cy="20" r="6" fill="#f59e0b"/>
+        <circle class="bridge-endpoint" cx="60" cy="180" r="6" fill="#3b82f6"/>
+        <circle class="bridge-endpoint" cx="60" cy="30" r="5" fill="#f59e0b" style="animation-delay:-0.5s;"/>
+        <circle class="bridge-endpoint" cx="20" cy="170" r="5" fill="#3b82f6" style="animation-delay:-0.5s;"/>
+      </svg>
+    </div>
+
+    <!-- Lean Panel -->
+    <div class="panel" id="lean-panel">
+      <div class="panel-header">
+        <span class="panel-title lean-title">Proof DAG (Lean 4)</span>
+        <span style="color:var(--dim);font-size:11px;">12 nodes, 11 edges</span>
+      </div>
+      <div class="canvas-container">
+        <svg class="graph" id="lean-svg" viewBox="0 0 400 400">
+          <defs>
+            <filter id="glow-l" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="2" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <!-- Edges first (behind nodes) -->
+          <g id="lean-edges">
+            <line class="edge" x1="200" y1="55" x2="120" y2="95" stroke="#8b5cf6" stroke-width="2" opacity="0.7"/>
+            <line class="edge" x1="200" y1="55" x2="280" y2="95" stroke="#8b5cf6" stroke-width="2" opacity="0.7"/>
+            <line class="edge" x1="120" y1="130" x2="70" y2="175" stroke="#06b6d4" stroke-width="2" opacity="0.7"/>
+            <line class="edge" x1="120" y1="130" x2="160" y2="175" stroke="#10b981" stroke-width="2" opacity="0.7"/>
+            <line class="edge" x1="280" y1="130" x2="240" y2="175" stroke="#10b981" stroke-width="2" opacity="0.7"/>
+            <line class="edge" x1="280" y1="130" x2="330" y2="175" stroke="#06b6d4" stroke-width="2" opacity="0.7"/>
+            <line class="edge" x1="70" y1="215" x2="50" y2="265" stroke="#22c55e" stroke-width="2" opacity="0.7"/>
+            <line class="edge" x1="70" y1="215" x2="100" y2="265" stroke="#22c55e" stroke-width="2" opacity="0.7"/>
+            <line class="edge" x1="160" y1="205" x2="200" y2="265" stroke="#f59e0b" stroke-width="2" opacity="0.7"/>
+            <line class="edge" x1="330" y1="215" x2="300" y2="265" stroke="#22c55e" stroke-width="2" opacity="0.7"/>
+            <line class="edge" x1="330" y1="215" x2="360" y2="265" stroke="#22c55e" stroke-width="2" opacity="0.7"/>
+          </g>
+          <!-- Nodes -->
+          <g id="lean-nodes">
+            <!-- Root: theorem -->
+            <g class="lean-node" data-id="l0" data-type="theorem" data-label="copyAll_impossible">
+              <rect x="150" y="30" width="100" height="35" rx="6" fill="#1e40af" stroke="#3b82f6" stroke-width="2" filter="url(#glow-l)"/>
+              <text x="200" y="52" fill="#fff" font-size="10" text-anchor="middle">theorem</text>
+            </g>
+            <!-- Level 1: app -->
+            <g class="lean-node" data-id="l1" data-type="app" data-label="TaskCT.possible">
+              <rect x="80" y="95" width="80" height="35" rx="6" fill="#4c1d95" stroke="#8b5cf6" stroke-width="2" filter="url(#glow-l)"/>
+              <text x="120" y="117" fill="#fff" font-size="10" text-anchor="middle">app</text>
+            </g>
+            <g class="lean-node" data-id="l2" data-type="app" data-label="match_1_1">
+              <rect x="240" y="95" width="80" height="35" rx="6" fill="#4c1d95" stroke="#8b5cf6" stroke-width="2" filter="url(#glow-l)"/>
+              <text x="280" y="117" fill="#fff" font-size="10" text-anchor="middle">app</text>
+            </g>
+            <!-- Level 2: lam, const -->
+            <g class="lean-node" data-id="l3" data-type="lam" data-label="λ h">
+              <polygon points="70,175 95,155 120,175 95,195" fill="#155e75" stroke="#06b6d4" stroke-width="2" filter="url(#glow-l)"/>
+              <text x="95" y="180" fill="#fff" font-size="9" text-anchor="middle">λ</text>
+            </g>
+            <g class="lean-node" data-id="l4" data-type="const" data-label="BB84Substrate">
+              <rect x="130" y="170" width="60" height="28" rx="4" fill="#065f46" stroke="#10b981" stroke-width="2" filter="url(#glow-l)"/>
+              <text x="160" y="188" fill="#fff" font-size="8" text-anchor="middle">const</text>
+            </g>
+            <g class="lean-node" data-id="l5" data-type="const" data-label="bb84TaskCT">
+              <rect x="210" y="170" width="60" height="28" rx="4" fill="#065f46" stroke="#10b981" stroke-width="2" filter="url(#glow-l)"/>
+              <text x="240" y="188" fill="#fff" font-size="8" text-anchor="middle">const</text>
+            </g>
+            <g class="lean-node" data-id="l6" data-type="lam" data-label="λ c hc">
+              <polygon points="330,175 355,155 380,175 355,195" fill="#155e75" stroke="#06b6d4" stroke-width="2" filter="url(#glow-l)"/>
+              <text x="355" y="180" fill="#fff" font-size="9" text-anchor="middle">λ</text>
+            </g>
+            <!-- Level 3: var, rfl -->
+            <g class="lean-node" data-id="l7" data-type="var" data-label="h">
+              <ellipse cx="50" cy="280" rx="25" ry="15" fill="#166534" stroke="#22c55e" stroke-width="2" filter="url(#glow-l)"/>
+              <text x="50" y="284" fill="#fff" font-size="9" text-anchor="middle">var</text>
+            </g>
+            <g class="lean-node" data-id="l8" data-type="var" data-label="h">
+              <ellipse cx="100" cy="280" rx="25" ry="15" fill="#166534" stroke="#22c55e" stroke-width="2" filter="url(#glow-l)"/>
+              <text x="100" y="284" fill="#fff" font-size="9" text-anchor="middle">var</text>
+            </g>
+            <g class="lean-node" data-id="l9" data-type="const" data-label="not_implements_copyAll">
+              <rect x="165" y="265" width="70" height="28" rx="4" fill="#78350f" stroke="#f59e0b" stroke-width="2" filter="url(#glow-l)"/>
+              <text x="200" y="283" fill="#fff" font-size="8" text-anchor="middle">proof</text>
+            </g>
+            <g class="lean-node" data-id="l10" data-type="var" data-label="c">
+              <ellipse cx="300" cy="280" rx="25" ry="15" fill="#166534" stroke="#22c55e" stroke-width="2" filter="url(#glow-l)"/>
+              <text x="300" y="284" fill="#fff" font-size="9" text-anchor="middle">var</text>
+            </g>
+            <g class="lean-node" data-id="l11" data-type="var" data-label="hc">
+              <ellipse cx="360" cy="280" rx="25" ry="15" fill="#166534" stroke="#22c55e" stroke-width="2" filter="url(#glow-l)"/>
+              <text x="360" y="284" fill="#fff" font-size="9" text-anchor="middle">var</text>
+            </g>
+          </g>
+        </svg>
+        <div class="legend">
+          <h4>Lean Term Types</h4>
+          <div class="legend-item"><div class="legend-color" style="background:#3b82f6"></div>theorem</div>
+          <div class="legend-item"><div class="legend-color" style="background:#8b5cf6"></div>app</div>
+          <div class="legend-item"><div class="legend-color" style="background:#06b6d4"></div>lam (λ)</div>
+          <div class="legend-item"><div class="legend-color" style="background:#10b981"></div>const</div>
+          <div class="legend-item"><div class="legend-color" style="background:#22c55e;border-radius:50%"></div>var</div>
+          <div class="legend-item"><div class="legend-color" style="background:#f59e0b"></div>proof</div>
+        </div>
+        <div class="info-panel" id="lean-info">
+          <h3>Selected Node</h3>
+          <div><span class="name">-</span><span class="type">-</span></div>
+          <pre id="lean-code">-</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Interactive node selection
+    const wolframNodes = document.querySelectorAll('.wolfram-node');
+    const leanNodes = document.querySelectorAll('.lean-node');
+    const wolframInfo = document.getElementById('wolfram-info');
+    const leanInfo = document.getElementById('lean-info');
+
+    const wolframData = {
+      w0: { name: 'v₀', type: 'vertex', hyperedge: 'e₁ (3-ary)' },
+      w1: { name: 'v₁', type: 'vertex', hyperedge: 'e₁ (3-ary)' },
+      w2: { name: 'v₂', type: 'vertex', hyperedge: 'e₁ (3-ary)' },
+      w3: { name: 'v₃', type: 'vertex', hyperedge: 'e₂ (3-ary)' },
+      w4: { name: 'v₄', type: 'vertex', hyperedge: 'e₂ (3-ary)' },
+      w5: { name: 'v₅', type: 'vertex', hyperedge: 'e₂ (3-ary)' },
+      w6: { name: 'v₆', type: 'vertex', hyperedge: 'e₃ (4-ary)' },
+      w7: { name: 'v₇', type: 'vertex', hyperedge: 'e₃ (4-ary)' },
+      w8: { name: 'v₈', type: 'vertex', hyperedge: 'e₃ (4-ary)' },
+      w9: { name: 'v₉', type: 'vertex', hyperedge: 'e₄ (3-ary)' },
+      w10: { name: 'v₁₀', type: 'vertex', hyperedge: 'e₄ (3-ary)' },
+      w11: { name: 'v₁₁', type: 'vertex', hyperedge: 'e₅ (2-ary)' },
+    };
+
+    wolframNodes.forEach(node => {
+      node.addEventListener('click', () => {
+        const id = node.dataset.id;
+        const data = wolframData[id];
+        if (data) {
+          wolframInfo.classList.add('visible');
+          wolframInfo.innerHTML = `
+            <h3>Hypergraph Vertex</h3>
+            <div><span class="name">${data.name}</span><span class="type">${data.type}</span></div>
+            <pre>Member of: ${data.hyperedge}\nBinary encoding: Int64 LE</pre>
+          `;
+        }
+      });
+    });
+
+    const leanData = {
+      l0: { name: 'copyAll_impossible', type: 'theorem', code: 'theorem copyAll_impossible :\n  ¬ TaskCT.possible bb84TaskCT copyAll' },
+      l1: { name: 'TaskCT.possible', type: 'app', code: 'TaskCT.possible BB84Substrate bb84TaskCT copyAll' },
+      l2: { name: 'match_1_1', type: 'app', code: 'copyAll_impossible.match_1_1 (λ c hc => ...)' },
+      l3: { name: 'λ h', type: 'lam', code: 'fun h =>\n  match h with\n  | ⟨c, hc⟩ => ...' },
+      l4: { name: 'BB84Substrate', type: 'const', code: 'BB84Substrate : Type' },
+      l5: { name: 'bb84TaskCT', type: 'const', code: 'bb84TaskCT : TaskCT BB84Substrate' },
+      l6: { name: 'λ c hc', type: 'lam', code: 'fun c hc =>\n  not_implements_copyAll c hc' },
+      l7: { name: 'h', type: 'var', code: 'h : TaskCT.possible bb84TaskCT copyAll' },
+      l8: { name: 'h', type: 'var', code: 'h : TaskCT.possible bb84TaskCT copyAll' },
+      l9: { name: 'not_implements_copyAll', type: 'const', code: 'not_implements_copyAll :\n  ∀ c, ¬ TaskCT.implements bb84TaskCT c copyAll' },
+      l10: { name: 'c', type: 'var', code: 'c : BB84Substrate.Ctor' },
+      l11: { name: 'hc', type: 'var', code: 'hc : TaskCT.implements bb84TaskCT c copyAll' },
+    };
+
+    leanNodes.forEach(node => {
+      node.addEventListener('click', () => {
+        const id = node.dataset.id;
+        const data = leanData[id];
+        if (data) {
+          leanInfo.classList.add('visible');
+          leanInfo.innerHTML = `
+            <h3>Proof Term Node</h3>
+            <div><span class="name">${data.name}</span><span class="type">${data.type}</span></div>
+            <pre>${data.code}</pre>
+          `;
+        }
+      });
+    });
+
+    // Button controls
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      wolframInfo.classList.remove('visible');
+      leanInfo.classList.remove('visible');
+    });
+
+    let bridgeVisible = true;
+    document.getElementById('btn-bridge').addEventListener('click', (e) => {
+      bridgeVisible = !bridgeVisible;
+      document.querySelector('.bridge-panel').style.display = bridgeVisible ? 'flex' : 'none';
+      e.target.classList.toggle('active', bridgeVisible);
+    });
+  </script>
+</body>
+</html>

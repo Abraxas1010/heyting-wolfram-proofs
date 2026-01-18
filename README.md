@@ -117,6 +117,66 @@ We humbly thank the collective intelligence of humanity for providing the techno
 
 ---
 
+## Bidirectional Bridge Demo
+
+The bridge works in **both directions**. Below we demonstrate each:
+
+### Direction 1: Lean → Wolfram (Proof Visualization)
+
+Export a Lean 4 proof term as a Wolfram Physics hypergraph:
+
+| Lean Proof | Wolfram Visualization |
+|------------|----------------------|
+| `HeytingLean.Crypto.QKD.BB84.copyAll_impossible` | <img src="RESEARCHER_BUNDLE/artifacts/visuals/proof_HeytingLean_Crypto_QKD_BB84_copyAll_impossible_value_term_hypergraph.png" width="300"/> |
+
+**44 nodes, 22 hyperedges** — The proof term's AST rendered as a Wolfram Physics hypergraph.
+
+### Direction 2: Wolfram → Lean (Universe Formalization)
+
+<p align="center">
+  <a href="https://abraxas1010.github.io/heyting-wolfram-proofs/RESEARCHER_BUNDLE/artifacts/visuals/universe1867_viewer.html">
+    <img src="RESEARCHER_BUNDLE/artifacts/visuals/universe1867_hypergraph.png" alt="Universe 1867" width="400"/>
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://abraxas1010.github.io/heyting-wolfram-proofs/RESEARCHER_BUNDLE/artifacts/visuals/universe1867_viewer.html">▶ Open Universe 1867 Interactive Viewer</a>
+</p>
+
+**[Universe 1867](https://www.wolframphysics.org/universes/wm1867/)** from the Wolfram Physics Registry of Notable Universes, formalized in Lean 4:
+
+| Wolfram Language | Lean 4 Formalization |
+|------------------|---------------------|
+| Rule: `{{{1,2},{2,3}} → {{2,3},{2,3},{3,4},{1,3}}}` | `def applyRule (e1 e2 : Hyperedge) (fresh : Nat)` |
+| Initial: `{{1,1},{1,1}}` | `def initial := [⟨1,1⟩, ⟨1,1⟩]` |
+| 7 generations | `evolveFinal initial 7` |
+| **74 events → 150 edges, 75 vertices** | Verified theorems in `Universe1867.lean` |
+
+The Wolfram Language code was downloaded directly from the [visual gallery](https://www.wolframphysics.org/visual-gallery/downloads?i=0001-dark) and converted to our formally verified proof system.
+
+<details>
+<summary><strong>Evolution Sequence (7 Steps)</strong></summary>
+
+| Step 0 | Step 1 | Step 2 | Step 3 |
+|--------|--------|--------|--------|
+| <img src="RESEARCHER_BUNDLE/artifacts/visuals/frame_0.png" width="150"/> | <img src="RESEARCHER_BUNDLE/artifacts/visuals/frame_1.png" width="150"/> | <img src="RESEARCHER_BUNDLE/artifacts/visuals/frame_2.png" width="150"/> | <img src="RESEARCHER_BUNDLE/artifacts/visuals/frame_3.png" width="150"/> |
+| 2 edges | | | |
+
+| Step 4 | Step 5 | Step 6 | Step 7 |
+|--------|--------|--------|--------|
+| <img src="RESEARCHER_BUNDLE/artifacts/visuals/frame_4.png" width="150"/> | <img src="RESEARCHER_BUNDLE/artifacts/visuals/frame_5.png" width="150"/> | <img src="RESEARCHER_BUNDLE/artifacts/visuals/frame_6.png" width="150"/> | <img src="RESEARCHER_BUNDLE/artifacts/visuals/frame_7.png" width="150"/> |
+| | | | 150 edges |
+
+</details>
+
+**Verified in Lean:**
+```lean
+theorem initial_edge_count : edgeCount universe1867_initial = 2 := rfl
+theorem rule_produces_four_edges : (applyRule e1 e2 fresh).length = 4 := rfl
+```
+
+---
+
 ## Why This Matters
 
 | Wolfram Physics | Lean 4 Proofs |
@@ -249,19 +309,24 @@ heyting-wolfram-proofs/
 │   └── 03_Reproducibility.md          # Build instructions
 └── RESEARCHER_BUNDLE/
     ├── HeytingLean/
-    │   └── CLI/
-    │       ├── ProofTermHypergraphMain.lean   # Proof → hypergraph
-    │       ├── WolframRoundtripMain.lean      # Lossless roundtrip
-    │       └── Args.lean                      # CLI utilities
+    │   ├── CLI/
+    │   │   ├── ProofTermHypergraphMain.lean   # Proof → hypergraph
+    │   │   ├── WolframRoundtripMain.lean      # Lossless roundtrip
+    │   │   └── Args.lean                      # CLI utilities
+    │   └── WolframPhysics/
+    │       └── Universe1867.lean              # Wolfram → Lean example
     ├── ffi/
     │   └── heyting_wolfram_bridge/
     │       ├── proof_hypergraph_visualize.wls # Wolfram viz
     │       ├── proof_hypergraph_witness.wls   # Witness generator
+    │       ├── universe1867_visualize.wls     # Universe 1867 viz
     │       └── echo_hypergraph_binary.wls     # Roundtrip helper
     ├── artifacts/
     │   └── visuals/
     │       ├── index.html                     # Visualization landing
-    │       └── bridge_viewer.html             # Interactive viewer
+    │       ├── bridge_viewer.html             # Interactive viewer
+    │       ├── x3d_viewer.html                # 3D proof viewer
+    │       └── universe1867_viewer.html       # Universe 1867 viewer
     └── scripts/
         └── verify.sh                          # Verification script
 ```
@@ -314,6 +379,7 @@ lake exe wolfram_roundtrip -- --echo
 ## References
 
 - [Wolfram Physics Project](https://www.wolframphysics.org/)
+- [Universe 1867](https://www.wolframphysics.org/universes/wm1867/) — Registry of Notable Universes
 - [SetReplace Package](https://github.com/maxitg/SetReplace)
 - [Lean 4 Documentation](https://lean-lang.org/)
 - [HeytingLean](https://github.com/Apoth3osis/HeytingLean) — Parent project

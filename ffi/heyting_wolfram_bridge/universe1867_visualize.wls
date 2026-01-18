@@ -48,62 +48,82 @@ If[hasSetReplace,
   Print["  Final vertices: ", Length[Union[Flatten[finalState]]]];
   Print[""];
 
-  (* Generate WolframModelPlot *)
+  (* Generate proper WolframModelPlot with visible colors *)
   plot = WolframModelPlot[finalState,
-    VertexSize -> 0.6,
-    "HyperedgeRendering" -> "Polygons",
-    PlotStyle -> ColorData["Rainbow"],
-    Background -> Black,
-    ImageSize -> 800
+    VertexSize -> 0.5,
+    "HyperedgeRendering" -> "Subgraphs",
+    EdgeStyle -> Directive[Opacity[0.7], Thickness[0.003]],
+    VertexStyle -> Directive[White, EdgeForm[{Thin, Gray}]],
+    Background -> RGBColor[0.05, 0.05, 0.05],
+    ImageSize -> 800,
+    PlotRangePadding -> Scaled[0.1]
   ];
 
   Export[FileNameJoin[{outDir, "universe1867_hypergraph.png"}], plot];
   Print["Exported: universe1867_hypergraph.png"];
 
-  (* Export evolution animation frames *)
+  (* Export evolution animation frames with proper styling *)
   Do[
     frame = WolframModelPlot[statesList[[i]],
       VertexSize -> 0.6,
-      "HyperedgeRendering" -> "Polygons",
-      PlotStyle -> ColorData["Rainbow"],
-      Background -> Black,
-      ImageSize -> 600
+      "HyperedgeRendering" -> "Subgraphs",
+      EdgeStyle -> Directive[Opacity[0.8], Thickness[0.004]],
+      VertexStyle -> Directive[Cyan, EdgeForm[{Thin, White}]],
+      Background -> RGBColor[0.05, 0.05, 0.05],
+      ImageSize -> 400,
+      PlotRangePadding -> Scaled[0.15]
     ];
     Export[FileNameJoin[{outDir, "frame_" <> ToString[i-1] <> ".png"}], frame];
   , {i, Min[Length[statesList], 8]}];
   Print["Exported evolution frames"];
 
-  (* Use finalState for export *)
   hypergraph = finalState;
 
-, (* Fallback without SetReplace *)
-  Print["SetReplace not available, using manual evolution"];
+, (* Fallback without SetReplace - use Graph visualization *)
+  Print["SetReplace not available, using Graph-based visualization"];
 
-  (* Manual evolution implementation *)
-  matchAndReplace[edges_] := Module[{e1, e2, rest, a, b, c, fresh},
-    (* Find two edges where e1.tgt = e2.src *)
+  (* Manual evolution - apply all matches per generation *)
+  findAllMatches[edges_] := Module[{matches = {}},
     Do[
       Do[
-        If[edges[[i, 2]] === edges[[j, 1]],
-          e1 = edges[[i]];
-          e2 = edges[[j]];
-          rest = Delete[edges, {{i}, {j}}];
-          a = e1[[1]]; b = e1[[2]]; c = e2[[2]];
-          fresh = Max[Flatten[edges]] + 1;
-          Return[rest ~Join~ {{b, c}, {b, c}, {c, fresh}, {a, c}}, Module]
+        If[i != j && edges[[i, 2]] === edges[[j, 1]],
+          AppendTo[matches, {i, j}];
         ];
       , {j, Length[edges]}];
     , {i, Length[edges]}];
-    edges (* No match found *)
+    matches
   ];
 
-  evolve[init_, n_] := NestList[matchAndReplace, init, n];
+  applyAllMatches[edges_] := Module[{matches, newEdges, usedIndices, fresh},
+    matches = findAllMatches[edges];
+    If[Length[matches] == 0, Return[edges]];
 
-  statesList = evolve[init1867, steps];
+    fresh = Max[Flatten[edges]] + 1;
+    newEdges = {};
+    usedIndices = {};
+
+    Do[
+      {i, j} = match;
+      If[!MemberQ[usedIndices, i] && !MemberQ[usedIndices, j],
+        AppendTo[usedIndices, i];
+        AppendTo[usedIndices, j];
+        {a, b} = edges[[i]];
+        {_, c} = edges[[j]];
+        newEdges = Join[newEdges, {{b, c}, {b, c}, {c, fresh}, {a, c}}];
+        fresh++;
+      ];
+    , {match, matches}];
+
+    Join[Delete[edges, List /@ usedIndices], newEdges]
+  ];
+
+  statesList = NestList[applyAllMatches, init1867, steps];
   finalState = Last[statesList];
+  eventCount = Total[Length[findAllMatches[#]] & /@ Most[statesList]];
 
   Print["Evolution complete (manual):"];
   Print["  Steps: ", steps];
+  Print["  Events: ~", eventCount];
   Print["  Final edges: ", Length[finalState]];
   Print[""];
 
@@ -114,7 +134,6 @@ If[hasSetReplace,
 (* Export to Bridge Binary Format        *)
 (* ===================================== *)
 
-(* Convert hypergraph to our format: each edge is [src, tgt] *)
 hyperedges = hypergraph;
 
 (* Write binary files *)
@@ -139,6 +158,7 @@ metadata = <|
   "rule" -> "{{{1,2},{2,3}} -> {{2,3},{2,3},{3,4},{1,3}}}",
   "initial" -> "{{1,1},{1,1}}",
   "steps" -> steps,
+  "events" -> eventCount,
   "edgeCount" -> Length[hyperedges],
   "vertexCount" -> Length[vertices],
   "root" -> Max[vertices],
@@ -149,24 +169,26 @@ Export[FileNameJoin[{outDir, "universe1867_metadata.json"}], metadata, "RawJSON"
 Print["Exported: universe1867_metadata.json"];
 
 (* ===================================== *)
-(* Generate 2D Visualization (fallback)  *)
+(* Generate Graph-based 2D Visualization *)
+(* (Fallback that always works)          *)
 (* ===================================== *)
 
-If[!hasSetReplace,
-  (* Create graph visualization *)
-  edges = DirectedEdge @@@ hypergraph;
-  g = Graph[edges,
-    VertexStyle -> Directive[White, EdgeForm[{Thin, Gray}]],
-    VertexSize -> 0.5,
-    VertexLabels -> Placed["Name", Center],
-    EdgeStyle -> Directive[Opacity[0.6], Thickness[0.003]],
-    Background -> Black,
-    GraphLayout -> "SpringElectricalEmbedding",
-    ImageSize -> 800
-  ];
-  Export[FileNameJoin[{outDir, "universe1867_hypergraph.png"}], g];
-  Print["Exported: universe1867_hypergraph.png (graph mode)"];
+edges2D = DirectedEdge @@@ hypergraph;
+g2D = Graph[edges2D,
+  VertexStyle -> Directive[Cyan, EdgeForm[{Thin, White}]],
+  VertexSize -> 0.3,
+  VertexLabels -> Placed["Name", Center],
+  VertexLabelStyle -> Directive[8, White],
+  EdgeStyle -> Directive[Opacity[0.5], Thickness[0.002],
+    Blend[{Orange, Red}, 0.5]],
+  Background -> RGBColor[0.05, 0.05, 0.05],
+  GraphLayout -> "SpringElectricalEmbedding",
+  ImageSize -> 800,
+  ImagePadding -> 20
 ];
+
+Export[FileNameJoin[{outDir, "universe1867_graph.png"}], g2D];
+Print["Exported: universe1867_graph.png"];
 
 (* ===================================== *)
 (* Generate 3D Visualization             *)
@@ -175,17 +197,20 @@ If[!hasSetReplace,
 edges3D = DirectedEdge @@@ hypergraph;
 g3D = Graph3D[edges3D,
   VertexStyle -> Directive[Cyan, Specularity[White, 30]],
-  VertexSize -> 0.4,
-  EdgeStyle -> Directive[Opacity[0.5], Thickness[0.002], GrayLevel[0.7]],
+  VertexSize -> 0.3,
+  EdgeStyle -> Directive[Opacity[0.4], Thickness[0.002], Orange],
   Background -> Black,
-  GraphLayout -> "SpringElectricalEmbedding"
+  GraphLayout -> "SpringElectricalEmbedding",
+  ImageSize -> 800
 ];
 
 Export[FileNameJoin[{outDir, "universe1867_3d.png"}], g3D];
 Print["Exported: universe1867_3d.png"];
 
-Export[FileNameJoin[{outDir, "universe1867.x3d"}], g3D];
-Print["Exported: universe1867.x3d"];
+(* Export edge list for JavaScript viewer *)
+edgeListJS = Map[{#[[1]], #[[2]]} &, hypergraph];
+Export[FileNameJoin[{outDir, "universe1867_edges.json"}], edgeListJS, "RawJSON"];
+Print["Exported: universe1867_edges.json"];
 
 Print[""];
 Print["Done. Output in: ", outDir];

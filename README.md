@@ -388,11 +388,5 @@ lake exe wolfram_roundtrip -- --echo
 
 ## License
 
-MIT License — see [LICENSE](LICENSE)
-
----
-
-<p align="center">
-  <sub>Part of the <a href="https://github.com/Apoth3osis/HeytingLean">HeytingLean</a> project</sub><br/>
-  <sub><a href="https://apoth3osis.io">apoth3osis.io</a></sub>
-</p>
+This project is provided under the Apoth3osis License Stack v1.
+See `LICENSE.md` and the files under `licenses/`.
